@@ -64,10 +64,6 @@ export default {
           "0%": { transform: "scaleX(0)" },
           "100%": { transform: "scaleX(1)" },
         },
-        "logo-draw": {
-          "0%": { strokeDashoffset: "1" },
-          "100%": { strokeDashoffset: "0" },
-        },
         "logo-pop": {
           "0%": { transform: "scale(0)", opacity: "0" },
           "70%": { transform: "scale(1.18)", opacity: "1" },
@@ -97,7 +93,6 @@ export default {
         "ring-fill": "ring-fill 1s cubic-bezier(0.16,1,0.3,1) both",
         "bar-grow": "bar-grow 0.8s cubic-bezier(0.16,1,0.3,1) both",
         marquee: "marquee 40s linear infinite",
-        "logo-draw": "logo-draw 0.9s cubic-bezier(0.65,0,0.35,1) 0.25s both",
         "logo-pop": "logo-pop 0.5s cubic-bezier(0.16,1,0.3,1) both",
         "float-in": "float-in 0.6s cubic-bezier(0.16,1,0.3,1) both",
       },

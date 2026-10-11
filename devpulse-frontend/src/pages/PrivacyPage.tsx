@@ -4,7 +4,7 @@ import { EyeOffIcon, LockIcon, ServerIcon, ShieldCheckIcon } from "../components
 
 const HIGHLIGHTS = [
   { icon: <EyeOffIcon size={16} />, title: "No source code stored", text: "We keep file names and line counts — never file contents or diffs." },
-  { icon: <LockIcon size={16} />, title: "Read-only access", text: "DevPulse can't push, comment, merge or change anything." },
+  { icon: <LockIcon size={16} />, title: "Read-only access", text: "Mergewise can't push, comment, merge or change anything." },
   { icon: <ShieldCheckIcon size={16} />, title: "No ads, no tracking", text: "No analytics or advertising cookies. We don't sell data." },
   { icon: <ServerIcon size={16} />, title: "Encrypted at rest", text: "Stored in an encrypted, private database on AWS." },
 ];
@@ -30,7 +30,7 @@ export function PrivacyPage() {
       sections={SECTIONS}
       intro={
         <>
-          DevPulse helps teams decide which pull requests need a careful review. To do that it needs a small amount
+          Mergewise helps teams decide which pull requests need a careful review. To do that it needs a small amount
           of information from GitHub. This page explains exactly what we collect, why, and what we never touch.
         </>
       }
@@ -46,11 +46,11 @@ export function PrivacyPage() {
           </li>
           <li>
             <span>
-              <strong>Your workspace</strong> — the organization DevPulse creates for you and your role in it.
+              <strong>Your workspace</strong> — the organization Mergewise creates for you and your role in it.
             </span>
           </li>
         </ul>
-        <p>When you connect repositories through the DevPulse GitHub App, we store:</p>
+        <p>When you connect repositories through the Mergewise GitHub App, we store:</p>
         <ul>
           <li>
             <span>
@@ -109,7 +109,7 @@ export function PrivacyPage() {
 
       <DocSection id="how-we-use-it" title="How we use it">
         <p>
-          Only to run DevPulse: to sign you in, show your repositories and pull requests, and calculate risk scores.
+          Only to run Mergewise: to sign you in, show your repositories and pull requests, and calculate risk scores.
           We don't sell your data, use it for advertising, or share it with anyone except the service providers
           listed below.
         </p>
@@ -117,7 +117,7 @@ export function PrivacyPage() {
 
       <DocSection id="cookies" title="Cookies">
         <p>
-          DevPulse sets <strong>one cookie</strong>, <code className="font-mono text-[13px] text-slate-700 dark:text-slate-300">devpulse.sid</code>,
+          Mergewise sets <strong>one cookie</strong>, <code className="font-mono text-[13px] text-slate-700 dark:text-slate-300">devpulse.sid</code>,
           to keep you signed in. It's HTTP-only (scripts can't read it), sent only over HTTPS, and expires after 7
           days or when you sign out. There are no other cookies.
         </p>
@@ -127,13 +127,13 @@ export function PrivacyPage() {
         <ul>
           <li>
             <span>
-              <strong>Amazon Web Services</strong> (United States, us-east-1) — runs the DevPulse server and its
+              <strong>Amazon Web Services</strong> (United States, us-east-1) — runs the Mergewise server and its
               encrypted PostgreSQL database. The database isn't reachable from the internet.
             </span>
           </li>
           <li>
             <span>
-              <strong>Vercel</strong> — serves the website and forwards its requests to the DevPulse server.
+              <strong>Vercel</strong> — serves the website and forwards its requests to the Mergewise server.
             </span>
           </li>
           <li>
@@ -171,7 +171,7 @@ export function PrivacyPage() {
           </li>
           <li>
             <span>
-              <strong>Account, repository and pull request data</strong> is kept while you use DevPulse, so your
+              <strong>Account, repository and pull request data</strong> is kept while you use Mergewise, so your
               history and risk scores stay available.
             </span>
           </li>
@@ -185,8 +185,8 @@ export function PrivacyPage() {
 
       <DocSection id="your-choices" title="Your choices">
         <ul>
-          <Choice title="Stop DevPulse reading repositories">
-            Uninstall the DevPulse app or remove repositories under <em>GitHub → Settings → Applications → Installed
+          <Choice title="Stop Mergewise reading repositories">
+            Uninstall the Mergewise app or remove repositories under <em>GitHub → Settings → Applications → Installed
             GitHub Apps</em>. We stop receiving updates immediately.
           </Choice>
           <Choice title="Revoke sign-in access">
@@ -200,7 +200,7 @@ export function PrivacyPage() {
 
       <DocSection id="changes" title="Changes and contact">
         <p>
-          If we change how DevPulse handles data, we'll update this page and the date at the top. For any privacy
+          If we change how Mergewise handles data, we'll update this page and the date at the top. For any privacy
           question, <ContactLine />.
         </p>
       </DocSection>

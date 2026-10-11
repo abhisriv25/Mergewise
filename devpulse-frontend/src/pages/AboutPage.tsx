@@ -40,7 +40,7 @@ const PRINCIPLES = [
   {
     icon: <LockIcon size={20} />,
     title: "Read-only by default",
-    text: "DevPulse asks for the least access it needs. It can't push, comment or merge, and it never stores your source code.",
+    text: "Mergewise asks for the least access it needs. It can't push, comment or merge, and it never stores your source code.",
   },
   {
     icon: <SparkleIcon size={20} />,
@@ -50,7 +50,7 @@ const PRINCIPLES = [
   {
     icon: <EyeOffIcon size={20} />,
     title: "Quiet by design",
-    text: "No bots in your pull requests, no blocked merges, no noise. DevPulse helps reviewers decide where to look, then gets out of the way.",
+    text: "No bots in your pull requests, no blocked merges, no noise. Mergewise helps reviewers decide where to look, then gets out of the way.",
   },
 ];
 
@@ -106,7 +106,7 @@ function Hero() {
     <section className={cx(PAGE_CONTAINER, "pb-20 pt-14 sm:pt-20")}>
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
         <div className="animate-fade-in-up">
-          <Eyebrow>About DevPulse</Eyebrow>
+          <Eyebrow>About Mergewise</Eyebrow>
           <h1 className="mt-4 text-5xl font-semibold leading-[1.04] tracking-[-0.04em] text-slate-900 sm:text-6xl dark:text-white">
             Calmer code reviews,{" "}
             <span className="bg-gradient-to-r from-emerald-600 via-teal-500 to-sky-600 bg-clip-text text-transparent dark:from-emerald-300 dark:via-teal-200 dark:to-sky-300">
@@ -115,7 +115,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
             Not every pull request deserves the same attention. A typo fix and an auth rewrite shouldn't wait in the
-            same queue. We're building DevPulse so reviewers can skim the routine and focus on the changes that can
+            same queue. We're building Mergewise so reviewers can skim the routine and focus on the changes that can
             actually hurt.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -166,7 +166,7 @@ function Why() {
           </p>
           <p>
             Senior engineers already know the warning signs by instinct: sensitive paths, migrations, dependency bumps,
-            missing tests, sprawling diffs. DevPulse turns that instinct into a{" "}
+            missing tests, sprawling diffs. Mergewise turns that instinct into a{" "}
             <strong className="font-semibold text-slate-900 dark:text-white">transparent, repeatable score</strong>, so
             the whole team can see which changes need a careful look, and why.
           </p>
@@ -230,7 +230,7 @@ function Journey() {
           <Eyebrow>How it's being built</Eyebrow>
           <h2 className={cx(H2, "mt-3")}>One working slice at a time.</h2>
           <p className="mt-5 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-            DevPulse is built in vertical slices: each stage ships something usable end to end, with tests, before the
+            Mergewise is built in vertical slices: each stage ships something usable end to end, with tests, before the
             next one starts. No half-built layers.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -284,7 +284,7 @@ function Team() {
       <Reveal className="mx-auto max-w-2xl text-center">
         <Eyebrow>The team</Eyebrow>
         <h2 className={cx(H2, "mt-3")}>Made by a team of two.</h2>
-        <p className="mt-5 text-lg text-slate-600 dark:text-slate-400">The people who designed, built and ship DevPulse.</p>
+        <p className="mt-5 text-lg text-slate-600 dark:text-slate-400">The people who designed, built and ship Mergewise.</p>
       </Reveal>
       <ul className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
         {CREATORS.map((creator, i) => (

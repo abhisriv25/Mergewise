@@ -55,7 +55,7 @@ export function WelcomePage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12 dark:bg-canvas">
       <div className="w-full max-w-md animate-fade-in-up">
         <div className="flex flex-col items-center text-center">
-          <LogoMark size={44} className="rounded-xl" />
+          <LogoMark size={44} />
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
             Create your organization
           </h1>

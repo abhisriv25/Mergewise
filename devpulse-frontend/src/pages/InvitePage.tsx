@@ -9,6 +9,7 @@ import {
   GithubIcon,
   LockIcon,
   LogoMark,
+  Wordmark,
   MailIcon,
   PullRequestIcon,
   ShieldCheckIcon,
@@ -41,7 +42,7 @@ function failureMessage(code: string, preview: InvitationPreview | undefined): {
     case "other_organization":
       return {
         title: "You're already in another organization",
-        body: "Your GitHub account belongs to a different DevPulse organization, and you can only be in one for now.",
+        body: "Your GitHub account belongs to a different Mergewise organization, and you can only be in one for now.",
       };
     case "not_linked":
       return {
@@ -73,7 +74,7 @@ function failureMessage(code: string, preview: InvitationPreview | undefined): {
 const PERKS = [
   { icon: GaugeIcon, title: "Every PR scored for risk", text: "Size, sensitive paths, migrations and missing tests — weighed the same way every time." },
   { icon: PullRequestIcon, title: "One review queue", text: "Open pull requests across your team's repositories, riskiest first." },
-  { icon: ShieldCheckIcon, title: "Read-only by design", text: "DevPulse never writes to your code or your pull requests." },
+  { icon: ShieldCheckIcon, title: "Read-only by design", text: "Mergewise never writes to your code or your pull requests." },
 ];
 
 const STEPS = [
@@ -108,8 +109,8 @@ export function InvitePage() {
 
       <header className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-8">
         <Link to="/about" className="flex items-center gap-2.5">
-          <LogoMark size={30} className="rounded-lg shadow-[0_4px_12px_-4px_rgb(2_132_199/0.45)]" />
-          <span className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">DevPulse</span>
+          <LogoMark size={30} />
+          <Wordmark className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white" />
         </Link>
         <ThemeToggle />
       </header>
@@ -124,7 +125,7 @@ export function InvitePage() {
             Review pull requests <span className="text-emerald-600 dark:text-emerald-400">with your team</span>
           </h1>
           <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
-            DevPulse scores every pull request for risk and explains why, so your team spends its review time where it
+            Mergewise scores every pull request for risk and explains why, so your team spends its review time where it
             matters.
           </p>
 
@@ -223,7 +224,7 @@ export function InvitePage() {
                     </>
                   ) : (
                     <ButtonLink to="/login" variant="outline" className="mt-6 h-11 w-full">
-                      Go to DevPulse
+                      Go to Mergewise
                     </ButtonLink>
                   )}
                 </>
@@ -243,7 +244,7 @@ export function InvitePage() {
             </Link>
             {" · "}
             <Link to="/about" className="hover:text-slate-800 dark:hover:text-slate-300">
-              About DevPulse
+              About Mergewise
             </Link>
           </p>
         </section>

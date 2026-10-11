@@ -43,7 +43,7 @@ export async function syncInstallationRepositories(
   }
 }
 
-/** Matches an incoming webhook event to the DevPulse-connected repository
+/** Matches an incoming webhook event to the Mergewise-connected repository
  * it belongs to. Returns the first match — if the same GitHub repo were
  * ever connected by two different organizations independently, only one
  * org's PR data gets synced from a given webhook event. Not handled

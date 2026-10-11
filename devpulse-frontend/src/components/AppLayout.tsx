@@ -4,7 +4,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { logout } from "../lib/api";
 import { useCurrentUser } from "../lib/use-current-user";
 import { usePullRequests } from "../lib/use-pull-requests";
-import { CloseIcon, HomeIcon, LogOutIcon, MenuIcon, LogoMark, PullRequestIcon, RepoIcon, UsersIcon } from "./icons";
+import { CloseIcon, HomeIcon, LogOutIcon, MenuIcon, LogoMark, PullRequestIcon, RepoIcon, UsersIcon, Wordmark } from "./icons";
 import { GridLines } from "./PublicLayout";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, cx } from "./ui";
@@ -86,8 +86,8 @@ export function AppLayout({ children, width = "wide" }: { children: ReactNode; w
 function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2.5">
-      <LogoMark size={32} className="shrink-0 rounded-lg shadow-[0_4px_12px_-4px_rgb(2_132_199/0.45)]" />
-      <span className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">DevPulse</span>
+      <LogoMark size={32} className="shrink-0" />
+      <Wordmark className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white" />
     </Link>
   );
 }

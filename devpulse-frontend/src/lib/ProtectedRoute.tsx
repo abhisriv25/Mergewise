@@ -19,7 +19,7 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-canvas" role="status">
-        <LogoMark size={48} className="animate-pulse rounded-xl" />
+        <LogoMark size={48} className="animate-pulse" />
         <span className="sr-only">Checking your session…</span>
       </div>
     );

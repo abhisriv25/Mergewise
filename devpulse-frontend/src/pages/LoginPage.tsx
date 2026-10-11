@@ -101,13 +101,13 @@ const STEPS = [
   {
     icon: <RepoIcon size={20} />,
     title: "Connect your repositories",
-    text: "Sign in with GitHub and install the DevPulse GitHub App on just the repositories you choose. Access is read-only.",
+    text: "Sign in with GitHub and install the Mergewise GitHub App on just the repositories you choose. Access is read-only.",
     detail: ["acme/api", "acme/web", "acme/infra"],
   },
   {
     icon: <PullRequestIcon size={20} />,
     title: "Every PR is scored on open",
-    text: "GitHub notifies DevPulse the moment a pull request is opened or updated. The engine scores it 0–100 within seconds.",
+    text: "GitHub notifies Mergewise the moment a pull request is opened or updated. The engine scores it 0–100 within seconds.",
     detail: ["opened", "synchronize", "reopened"],
   },
   {
@@ -143,12 +143,12 @@ const TRUST = [
   {
     icon: <EyeOffIcon size={20} />,
     title: "We never store your code",
-    text: "DevPulse reads file names and diff stats to score a PR. Source code is never written to our database.",
+    text: "Mergewise reads file names and diff stats to score a PR. Source code is never written to our database.",
   },
   {
     icon: <LockIcon size={20} />,
     title: "Read-only GitHub App",
-    text: "DevPulse can't push, comment, merge or change settings. It only sees the repositories you pick.",
+    text: "Mergewise can't push, comment, merge or change settings. It only sees the repositories you pick.",
   },
   {
     icon: <ShieldCheckIcon size={20} />,
@@ -174,7 +174,7 @@ const TRUST = [
 
 const FAQS: { q: string; a: ReactNode }[] = [
   {
-    q: "Does DevPulse read or store my source code?",
+    q: "Does Mergewise read or store my source code?",
     a: "No source code is stored. To score a pull request, the engine only needs which files changed and how many lines were added or removed — the same summary you see at the top of a GitHub diff.",
   },
   {
@@ -183,7 +183,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "What access does the GitHub App need?",
-    a: "Read-only access to the repositories you select during installation, and nothing else. DevPulse can't push code, comment, approve, merge, or change repository settings. You can remove it at any time from your GitHub settings.",
+    a: "Read-only access to the repositories you select during installation, and nothing else. Mergewise can't push code, comment, approve, merge, or change repository settings. You can remove it at any time from your GitHub settings.",
   },
   {
     q: "How exactly is the score calculated?",
@@ -191,7 +191,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Will it block merges or post comments on my PRs?",
-    a: "No. DevPulse is advisory: it helps reviewers decide where to spend their attention, and never changes anything on GitHub.",
+    a: "No. Mergewise is advisory: it helps reviewers decide where to spend their attention, and never changes anything on GitHub.",
   },
   {
     q: "What happens when someone pushes new commits?",
@@ -312,7 +312,7 @@ function Hero({ oauthFailed }: { oauthFailed: boolean }) {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600 lg:mx-0 dark:text-slate-400">
-            DevPulse scores every pull request against real risk signals — sensitive code, migrations, dependencies,
+            Mergewise scores every pull request against real risk signals — sensitive code, migrations, dependencies,
             missing tests — so your team spends review time where it counts.
           </p>
 
@@ -385,7 +385,7 @@ function ProductWindow() {
       <div className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-emerald-200/60 via-sky-100/50 to-indigo-200/50 blur-2xl dark:from-emerald-500/20 dark:via-transparent dark:to-indigo-500/20" />
 
       <div className={WINDOW}>
-        <WindowChrome label="DevPulse · Pull requests" />
+        <WindowChrome label="Mergewise · Pull requests" />
 
         <div className="grid sm:grid-cols-[1fr_220px]">
           <div className="min-w-0">
@@ -533,7 +533,7 @@ function SignalsSection() {
           align="left"
           eyebrow="The engine"
           title="Six signals. One honest number."
-          text="No machine-learning guesswork in the score. DevPulse applies a small set of transparent, documented rules that senior reviewers already check by instinct. AI comes in afterwards: to explain, never to decide."
+          text="No machine-learning guesswork in the score. Mergewise applies a small set of transparent, documented rules that senior reviewers already check by instinct. AI comes in afterwards: to explain, never to decide."
           sticky
         >
           <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 font-mono text-[12px] leading-relaxed shadow-lg dark:border-white/10 dark:bg-black/40 dark:shadow-none">
@@ -635,7 +635,7 @@ function ScoreSection() {
           <Eyebrow>Explainable by design</Eyebrow>
           <h2 className={H2}>Every point has a reason you can click.</h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-            A score is only useful if you trust it. DevPulse shows exactly which files tripped which rule, and how many
+            A score is only useful if you trust it. Mergewise shows exactly which files tripped which rule, and how many
             points each one added — so a reviewer knows where to look before opening the diff.
           </p>
 
@@ -904,7 +904,7 @@ function SecuritySection() {
       <SectionHeading
         eyebrow="Security & privacy"
         title="Built to be trusted with your repositories."
-        text="DevPulse asks for the least access it needs, and keeps even less."
+        text="Mergewise asks for the least access it needs, and keeps even less."
       />
 
       <div className="mt-14 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

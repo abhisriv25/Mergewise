@@ -42,7 +42,7 @@ export async function processWebhookEvent(event: WebhookEvent): Promise<void> {
   const repository = await findRepositoryByGithubIds(event.githubRepoId, event.githubInstallationId);
 
   // Not an error — the repo may have been disconnected since, or this is
-  // an installation DevPulse doesn't track. Nothing to retry.
+  // an installation Mergewise doesn't track. Nothing to retry.
   if (!repository) {
     await markEvent(event.id, "IGNORED");
     return;

@@ -41,15 +41,15 @@ export async function sendInvitationEmail(input: {
       body: JSON.stringify({
         from: env.EMAIL_FROM,
         to: [input.to],
-        subject: `${input.inviterLogin} invited you to ${input.organizationName} on DevPulse`,
+        subject: `${input.inviterLogin} invited you to ${input.organizationName} on Mergewise`,
         text:
-          `${input.inviterLogin} invited you to join ${input.organizationName} on DevPulse.\n\n` +
+          `${input.inviterLogin} invited you to join ${input.organizationName} on Mergewise.\n\n` +
           `Accept the invitation: ${input.url}\n\n` +
           `The link works once and expires in 24 hours. You'll sign in with your GitHub account, ` +
           `which must belong to the team's GitHub organization.\n\n` +
           `If you weren't expecting this, you can ignore this email.`,
         html:
-          `<p><strong>${inviter}</strong> invited you to join <strong>${org}</strong> on DevPulse.</p>` +
+          `<p><strong>${inviter}</strong> invited you to join <strong>${org}</strong> on Mergewise.</p>` +
           `<p><a href="${url}">Accept the invitation</a></p>` +
           `<p>The link works once and expires in 24 hours. You'll sign in with your GitHub account, ` +
           `which must belong to the team's GitHub organization.</p>` +
