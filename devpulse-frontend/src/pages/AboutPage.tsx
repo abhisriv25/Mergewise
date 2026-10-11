@@ -45,7 +45,7 @@ const PRINCIPLES = [
   {
     icon: <SparkleIcon size={20} />,
     title: "Rules decide, AI explains",
-    text: "The score is deterministic and versioned. AI is being added to explain it in plain English, and it will never change the number.",
+    text: "The score is deterministic and versioned. AI explains it in plain English, and it never changes the number.",
   },
   {
     icon: <EyeOffIcon size={20} />,
@@ -63,7 +63,7 @@ const STAGES: { title: string; text: string; status: StageStatus }[] = [
   { title: "Pull request sync", text: "Background processing that always fetches GitHub's current state.", status: "shipped" },
   { title: "Risk engine", text: "Six transparent rules, pure functions, 32 table-driven tests.", status: "shipped" },
   { title: "Dashboard and PR pages", text: "The review queue, risk breakdowns and a live deployment.", status: "shipped" },
-  { title: "AI review", text: "Read your docs, then explain risky PRs with sources.", status: "progress" },
+  { title: "AI review", text: "Reads your docs, then explains risky PRs with sources.", status: "shipped" },
   { title: "Notifications", text: "Slack alerts and workflow automation.", status: "planned" },
 ];
 

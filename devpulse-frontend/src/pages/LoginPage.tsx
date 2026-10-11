@@ -179,7 +179,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Do you use AI to score pull requests?",
-    a: "No, and that's on purpose. The score comes from transparent rules, so it's predictable, auditable and identical every time. AI is being added to explain risky pull requests in plain English, grounded in your own docs. It will never change the score.",
+    a: "No, and that's on purpose. The score comes from transparent rules, so it's predictable, auditable and identical every time. AI explains risky pull requests in plain English, grounded in your own docs. It never changes the score.",
   },
   {
     q: "What access does the GitHub App need?",
@@ -298,7 +298,7 @@ function Hero({ oauthFailed }: { oauthFailed: boolean }) {
             className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 py-1 pl-1 pr-3 text-xs font-medium text-slate-700 shadow-sm backdrop-blur transition-colors hover:border-indigo-300 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:shadow-none dark:hover:border-indigo-400/40"
           >
             <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              <SparkleIcon size={10} /> Coming soon
+              <SparkleIcon size={10} /> New
             </span>
             AI review: rules score it, AI explains it
             <ArrowRightIcon size={12} className="text-slate-400 transition-transform group-hover:translate-x-0.5" />
@@ -714,7 +714,7 @@ function ScoreSection() {
   );
 }
 
-/* ──────────────────────── AI (coming soon) ──────────────────────── */
+/* ──────────────────────── AI review ──────────────────────── */
 
 const SCORE_TODAY = [
   "Six transparent, documented rules",
@@ -723,7 +723,7 @@ const SCORE_TODAY = [
   "Instant, with no AI cost",
 ];
 
-const EXPLANATION_SOON = [
+const EXPLANATION = [
   "Reads your repo's README and docs/",
   "Summarises the risk in plain English",
   "Findings and recommendations that cite your docs",
@@ -739,18 +739,18 @@ function AiSection() {
       />
       <div className={cx(PAGE_CONTAINER, "relative py-20 sm:py-24")}>
         <SectionHeading
-          eyebrow="AI review · coming soon"
+          eyebrow="AI review"
           title="Scored by rules. Explained by AI."
-          text="The score stays deterministic: predictable, auditable and identical every time. AI is being added on top to explain the why, in plain English, grounded in your team's own docs."
+          text="The score stays deterministic: predictable, auditable and identical every time. AI adds the why on top, in plain English, grounded in your team's own docs."
         />
 
         <div className="mt-14 grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
           <div className="space-y-5">
             <Reveal>
-              <Pillar title="The score" status="Live today" tone="live" icon={<ShieldCheckIcon size={18} />} items={SCORE_TODAY} />
+              <Pillar title="The score" status="Live today" tone="rules" icon={<ShieldCheckIcon size={18} />} items={SCORE_TODAY} />
             </Reveal>
             <Reveal delay={100}>
-              <Pillar title="The explanation" status="Coming soon" tone="soon" icon={<SparkleIcon size={18} />} items={EXPLANATION_SOON} />
+              <Pillar title="The explanation" status="Live today" tone="ai" icon={<SparkleIcon size={18} />} items={EXPLANATION} />
             </Reveal>
           </div>
 
@@ -781,11 +781,11 @@ function Pillar({
 }: {
   title: string;
   status: string;
-  tone: "live" | "soon";
+  tone: "rules" | "ai";
   icon: ReactNode;
   items: string[];
 }) {
-  const live = tone === "live";
+  const live = tone === "rules";
   return (
     <div className={cx(CARD, "p-6 sm:p-7")}>
       <div className="flex items-center justify-between gap-3">

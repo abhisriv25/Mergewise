@@ -425,10 +425,10 @@ function AiSection({
               <SparkleIcon size={16} />
             </span>
             <div>
-              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Coming soon: AI review</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">AI review isn't switched on</p>
               <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-                A plain-English explanation of this score, grounded in your repo's README and docs, with findings and
-                recommendations that cite their source. AI never changes the score above.
+                The server has no AI key configured, so this pull request can't be explained right now. The risk score
+                above doesn't depend on it.
               </p>
             </div>
           </div>
