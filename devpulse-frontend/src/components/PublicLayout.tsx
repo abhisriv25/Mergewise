@@ -43,6 +43,7 @@ const LANDING_SECTIONS = [
   { id: "how-it-works", label: "How it works" },
   { id: "product", label: "Product" },
   { id: "security", label: "Security" },
+  { id: "roadmap", label: "Roadmap" },
   { id: "faq", label: "FAQ" },
 ];
 
@@ -233,6 +234,8 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; to?: string; href
       { label: "Risk engine", href: "/login#signals" },
       { label: "How it works", href: "/login#how-it-works" },
       { label: "Security", href: "/login#security" },
+      { label: "Roadmap", href: "/login#roadmap" },
+      { label: "Early access", href: "/login#early-access" },
       { label: "FAQ", href: "/login#faq" },
     ],
   },

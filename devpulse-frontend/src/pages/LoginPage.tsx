@@ -3,12 +3,14 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertIcon,
   ArrowRightIcon,
+  BranchIcon,
   CheckIcon,
   ChevronDownIcon,
   DatabaseIcon,
   DiffIcon,
   EyeOffIcon,
   FlaskIcon,
+  GaugeIcon,
   GithubIcon,
   LayersIcon,
   LockIcon,
@@ -18,6 +20,7 @@ import {
   ServerIcon,
   ShieldCheckIcon,
   SparkleIcon,
+  UsersIcon,
 } from "../components/icons";
 import { GridLines, PAGE_CONTAINER, PublicLayout } from "../components/PublicLayout";
 import { Reveal } from "../components/Reveal";
@@ -168,11 +171,24 @@ const TRUST = [
   {
     icon: <SparkleIcon size={20} />,
     title: "AI reads your docs, not your code",
-    text: "When AI review launches, it will only read your repo's README and docs, and only for Medium-risk PRs and above.",
+    text: "AI review only reads your repo's README and docs, never your source code, and only runs for Medium-risk PRs and above.",
   },
 ];
 
 const FAQS: { q: string; a: ReactNode }[] = [
+  {
+    q: "How much does Mergewise cost?",
+    a: "Nothing during early access. Connect as many repositories as you like; we'll give plenty of notice before any paid plan arrives.",
+  },
+  {
+    q: "What's coming next?",
+    a: (
+      <>
+        Risk scores right on the pull request, learning from your own incidents, an ROI dashboard, and integrations
+        beyond GitHub. See the <a href="#roadmap" className="font-medium text-slate-800 underline decoration-slate-300 underline-offset-2 hover:text-slate-900 dark:text-slate-200 dark:decoration-slate-600 dark:hover:text-white">roadmap</a>; design partners get each one first.
+      </>
+    ),
+  },
   {
     q: "Does Mergewise read or store my source code?",
     a: "No source code is stored. To score a pull request, the engine only needs which files changed and how many lines were added or removed — the same summary you see at the top of a GitHub diff.",
@@ -218,6 +234,8 @@ export function LoginPage() {
         <ScoreSection />
         <AiSection />
         <SecuritySection />
+        <RoadmapSection />
+        <DesignPartnerSection />
         <FaqSection />
         <FinalCta />
       </main>
@@ -931,6 +949,269 @@ function SecuritySection() {
         .
       </p>
     </Section>
+  );
+}
+
+/* ──────────────────────── Roadmap ──────────────────────── */
+
+type RoadmapStatus = "next" | "planned";
+
+function StatusPill({ status }: { status: RoadmapStatus }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+        status === "next"
+          ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20"
+          : "bg-slate-100 text-slate-600 ring-slate-500/15 dark:bg-white/[0.06] dark:text-slate-300 dark:ring-white/10",
+      )}
+    >
+      <span className={cx("size-1.5 rounded-full", status === "next" ? "bg-emerald-500" : "bg-slate-400")} />
+      {status === "next" ? "Next" : "Planned"}
+    </span>
+  );
+}
+
+function RoadmapCard({
+  status,
+  icon,
+  title,
+  text,
+  className,
+  children,
+}: {
+  status: RoadmapStatus;
+  icon: ReactNode;
+  title: string;
+  text: string;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cx(
+        CARD,
+        "group relative flex h-full flex-col overflow-hidden p-6 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:p-7 dark:hover:border-white/20",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span className={ICON_TILE}>{icon}</span>
+        <StatusPill status={status} />
+      </div>
+      <h3 className="mt-6 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h3>
+      <p className="mt-2 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{text}</p>
+      {children && <div className="mt-6 flex flex-1 flex-col">{children}</div>}
+    </div>
+  );
+}
+
+/** Small "example" tag for illustrative mock-ups, so nothing reads as a claim. */
+function ExampleTag() {
+  return (
+    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-white/[0.06] dark:text-slate-400">
+      Example
+    </span>
+  );
+}
+
+const INCIDENT_SOURCES = ["Sentry", "PagerDuty", "Reverted PRs", "Hotfix branches"];
+
+const INSIGHT_PRINCIPLES = ["Private by default", "Team trends for leads", "Personal coaching tips"];
+
+const INTEGRATIONS = ["GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Microsoft Teams", "CI test coverage"];
+
+const ENTERPRISE = ["SOC 2 report", "Bring your own AI key", "Self-hosted option", "Public status page"];
+
+function RoadmapSection() {
+  return (
+    <Section id="roadmap">
+      <SectionHeading
+        eyebrow="Roadmap"
+        title="Where Mergewise goes next."
+        text="Built in the open. Everything above is live today; these are the next things we're building, in roughly this order."
+      />
+
+      <div className="mt-14 grid gap-5 lg:grid-cols-6">
+        <Reveal className="lg:col-span-4 lg:row-span-2">
+          <RoadmapCard
+            status="next"
+            icon={<AlertIcon size={20} />}
+            title="Learns from your incidents"
+            text="Connect Sentry, PagerDuty or your reverts, and Mergewise learns which kinds of change actually broke production for your team, then weighs them more heavily. Your score becomes predictive, and personal."
+          >
+            <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.02]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500">Learned rule</span>
+                <ExampleTag />
+              </div>
+              <div className="my-auto grid items-center gap-4 py-4 sm:grid-cols-[1fr_auto_1fr]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <p className="font-mono text-[13px] font-medium text-slate-900 dark:text-white">payments/** without tests</p>
+                  <p className="mt-1 text-xs text-slate-500">linked to 3 incidents in 6 months</p>
+                </div>
+                <ArrowRightIcon size={16} className="mx-auto rotate-90 text-slate-400 sm:rotate-0" />
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-400/20 dark:bg-orange-400/[0.06]">
+                  <p className="tabular font-mono text-2xl font-semibold text-orange-600 dark:text-orange-300">+25</p>
+                  <p className="mt-0.5 text-xs text-orange-700/80 dark:text-orange-200/70">added to matching pull requests</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-5">
+              <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Learns from</span>
+              {INCIDENT_SOURCES.map((name) => (
+                <span
+                  key={name}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </RoadmapCard>
+        </Reveal>
+
+        <Reveal className="lg:col-span-2" delay={80}>
+          <RoadmapCard
+            status="next"
+            icon={<PullRequestIcon size={20} />}
+            title="The score, on every pull request"
+            text="A GitHub check with the score and its reasons, right where your team already reviews."
+          >
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-5 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-400/15 dark:text-orange-300">
+                  <AlertIcon size={11} />
+                </span>
+                <span className="text-[13px] font-semibold text-slate-900 dark:text-white">Mergewise</span>
+                <span className="ml-auto"><ExampleTag /></span>
+              </div>
+              <p className="mt-2 pl-7 text-xs text-slate-500">60/100 High · sensitive code, no tests</p>
+            </div>
+          </RoadmapCard>
+        </Reveal>
+
+        <Reveal className="lg:col-span-2" delay={140}>
+          <RoadmapCard
+            status="next"
+            icon={<GaugeIcon size={20} />}
+            title="ROI dashboard"
+            text="Measured, not guessed: review time by risk level, risky PRs caught before merge, reviewer hours saved."
+          />
+        </Reveal>
+
+        <Reveal className="lg:col-span-3" delay={60}>
+          <RoadmapCard
+            status="planned"
+            icon={<BranchIcon size={20} />}
+            title="Works where your team works"
+            text="Beyond GitHub: more code hosts, your issue tracker, chat alerts for risky PRs, and test coverage from CI."
+          >
+            <div className="flex flex-wrap gap-2">
+              {INTEGRATIONS.map((name) => (
+                <span
+                  key={name}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </RoadmapCard>
+        </Reveal>
+
+        <Reveal className="lg:col-span-3" delay={120}>
+          <RoadmapCard
+            status="planned"
+            icon={<ShieldCheckIcon size={20} />}
+            title="Enterprise-grade trust"
+            text="For teams with strict security reviews: independent audits, your own AI provider, and full control of where it runs."
+          >
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {ENTERPRISE.map((item) => (
+                <li key={item} className="flex items-center gap-2 text-[14px] text-slate-700 dark:text-slate-300">
+                  <CheckIcon size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </RoadmapCard>
+        </Reveal>
+
+        <Reveal className="lg:col-span-6" delay={60}>
+          <RoadmapCard
+            status="planned"
+            icon={<UsersIcon size={20} />}
+            title="Team insights, built for coaching"
+            text="Private habits for each developer (PR size, tests, review load) and team-level trends for leads. Coaching, never a leaderboard: everyone sees their own data first, and admins decide what's shared."
+          >
+            <div className="flex flex-wrap gap-2">
+              {INSIGHT_PRINCIPLES.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
+                >
+                  <CheckIcon size={12} className="text-emerald-600 dark:text-emerald-400" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </RoadmapCard>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}
+
+/* ──────────────────────── Design partners ──────────────────────── */
+
+const PARTNER_PERKS = [
+  "Free for your whole team during early access",
+  "A direct line to the people building it",
+  "Your feedback shipped in days, not quarters",
+  "First access to everything on the roadmap",
+];
+
+function DesignPartnerSection() {
+  return (
+    <section id="early-access" className={cx(PAGE_CONTAINER, "scroll-mt-16 pb-24 pt-4")}>
+      <Reveal>
+        <div className="rounded-3xl bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-600 p-px shadow-[0_30px_80px_-30px_rgb(2_132_199/0.45)]">
+          <div className="relative overflow-hidden rounded-[calc(1.5rem-1px)] bg-white px-6 py-14 sm:px-14 sm:py-16 dark:bg-surface">
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-200/50 blur-[90px] dark:bg-cyan-500/15" />
+              <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-emerald-200/50 blur-[90px] dark:bg-emerald-500/15" />
+            </div>
+            <div className="relative grid items-center gap-12 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+              <div>
+                <Eyebrow>Early access</Eyebrow>
+                <h2 className={H2}>Shape Mergewise as a design partner.</h2>
+                <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+                  We're working closely with a small group of engineering teams. Connect a repository, tell us what's
+                  missing, and watch it land.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <GithubCta />
+                  <a href={SITE.sourceUrl} target="_blank" rel="noreferrer" className={buttonClasses("outline", "md", "h-12 w-full px-6 text-[15px] sm:w-auto")}>
+                    Read the source
+                  </a>
+                </div>
+              </div>
+              <ul className="space-y-4">
+                {PARTNER_PERKS.map((perk) => (
+                  <li key={perk} className="flex items-start gap-3.5">
+                    <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sm">
+                      <CheckIcon size={13} />
+                    </span>
+                    <span className="text-[16px] font-medium text-slate-800 dark:text-slate-200">{perk}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </section>
   );
 }
 
