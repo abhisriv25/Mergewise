@@ -1,4 +1,4 @@
-import { useId, type SVGProps } from "react";
+import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -23,53 +23,41 @@ function StrokeIcon({ size = 16, children, ...props }: IconProps) {
   );
 }
 
-const NODE_ORIGIN = { transformBox: "fill-box", transformOrigin: "center" } as const;
-
-/** The DevPulse logo ("Merge Pulse"): two code nodes joined by a
- * heartbeat on a gradient tile. Keep in sync with public/favicon.svg. */
-export function LogoMark({ size = 32, animated = false, ...props }: IconProps & { animated?: boolean }) {
-  // Unique per instance: several logos can be on one page, and SVG
-  // gradient ids are document-global.
-  const gradientId = `devpulse-logo-${useId().replace(/:/g, "")}`;
+/** The Mergewise logo mark: two branches merging into a check. A
+ * transparent PNG (public/logo-mark.png, 512px), so it sits on light and
+ * dark backgrounds alike; the favicons are cut from the same artwork. */
+export function LogoMark({
+  size = 32,
+  animated = false,
+  className,
+}: {
+  size?: number;
+  animated?: boolean;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" aria-hidden="true" {...props}>
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#10b981" />
-          <stop offset="1" stopColor="#0284c7" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="16" fill={`url(#${gradientId})`} />
-      {/* animated: the left node pops in, the heartbeat draws across, then the right node pops in. */}
-      <circle
-        cx="14"
-        cy="32"
-        r="5.5"
-        stroke="#fff"
-        strokeWidth="4.5"
-        className={animated ? "animate-logo-pop" : undefined}
-        style={animated ? NODE_ORIGIN : undefined}
-      />
-      <circle
-        cx="50"
-        cy="32"
-        r="5.5"
-        stroke="#fff"
-        strokeWidth="4.5"
-        className={animated ? "animate-logo-pop [animation-delay:1.05s]" : undefined}
-        style={animated ? NODE_ORIGIN : undefined}
-      />
-      <path
-        d="M19.5 32h5l4-11 7 22 4-11h5"
-        stroke="#fff"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        pathLength={1}
-        strokeDasharray={animated ? 1 : undefined}
-        className={animated ? "animate-logo-draw" : undefined}
-      />
-    </svg>
+    <img
+      src="/logo-mark.png"
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={[animated ? "animate-logo-pop" : "", className ?? ""].join(" ").trim() || undefined}
+    />
+  );
+}
+
+/** "Mergewise" set in the page's own type, "wise" in the logo gradient, so
+ * the name stays crisp and readable in both themes. */
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={className}>
+      Merge
+      <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 bg-clip-text text-transparent">
+        wise
+      </span>
+    </span>
   );
 }
 

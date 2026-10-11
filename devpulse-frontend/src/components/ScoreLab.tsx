@@ -342,7 +342,7 @@ function RealPrScorer() {
 
         <p className="mt-6 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
           <LockIcon size={13} className="mt-0.5 shrink-0" />
-          Runs entirely in your browser: DevPulse fetches the file list from GitHub's public API and scores it with the
+          Runs entirely in your browser: Mergewise fetches the file list from GitHub's public API and scores it with the
           same engine ({RISK_ENGINE_VERSION}) that scores connected repos. Nothing is sent to our servers.
         </p>
       </div>
@@ -386,7 +386,7 @@ function RealPrScorer() {
               </span>
               <p className="mt-4 text-sm font-medium text-slate-900 dark:text-white">Any public pull request</p>
               <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
-                Paste a link, or pick an example, and see exactly how DevPulse would score it.
+                Paste a link, or pick an example, and see exactly how Mergewise would score it.
               </p>
             </div>
           )}

@@ -104,7 +104,7 @@ export async function removeMember(organizationId: string, membershipId: string)
 
 /**
  * Run at sign-in: a MEMBER who has definitively left the organization's
- * GitHub account loses their DevPulse membership. Admins are left alone,
+ * GitHub account loses their Mergewise membership. Admins are left alone,
  * and anything short of GitHub saying "not a member" (an error, a missing
  * permission) changes nothing — nobody is removed on a blip.
  */

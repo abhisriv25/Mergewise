@@ -321,7 +321,7 @@ function QueueEmpty({ hasRepos, hasPrs }: { hasRepos: boolean; hasPrs: boolean }
       <EmptyState
         icon={<RepoIcon size={18} />}
         title="Connect your first repository"
-        description="DevPulse installs as a read-only GitHub App. Pick the repos to watch and new pull requests are scored automatically."
+        description="Mergewise installs as a read-only GitHub App. Pick the repos to watch and new pull requests are scored automatically."
         action={
           <ButtonAnchor href={githubInstallUrl()} variant="solid">
             <PlusIcon size={14} /> Connect repository

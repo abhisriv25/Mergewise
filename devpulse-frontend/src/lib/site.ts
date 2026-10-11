@@ -55,9 +55,9 @@ export const CREATORS: Creator[] = [
 ];
 
 export const SITE = {
-  name: "DevPulse",
+  name: "Mergewise",
   /** Shown on the Privacy and Terms pages. Leave "" to point people to the About page instead. */
   contactEmail: "",
   sourceUrl: "https://github.com/abhisriv25/devpulse",
-  policiesUpdated: "27 September 2026",
+  policiesUpdated: "11 October 2026",
 };

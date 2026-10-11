@@ -21,7 +21,7 @@ export const authFlowRateLimiter = rateLimit({
 });
 
 /** Sending invitations emails real people, so it's capped per hour — enough
- * to invite a whole team, not enough to use DevPulse as a spam relay. */
+ * to invite a whole team, not enough to use Mergewise as a spam relay. */
 export const invitationSendRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 50,

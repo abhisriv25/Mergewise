@@ -1,4 +1,14 @@
-# DevPulse
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="devpulse-frontend/public/logo-full-dark.png">
+    <img src="devpulse-frontend/public/logo-full.png" alt="Mergewise" width="420">
+  </picture>
+</p>
+
+# Mergewise
+
+Mergewise (formerly DevPulse) scores every pull request 0–100 for review risk and explains why.
+The repository and its folders keep the original `devpulse` name.
 
 GitHub-connected PR intelligence: a rule-based PR risk engine + engineering-memory and
 RAG. See the original design docs for the full product vision — **this repo
@@ -76,13 +86,13 @@ exists to avoid.
 ## What Slice 2 adds — connect a repository
 
 - A **GitHub App** installation flow, separate from the Slice 1 OAuth App — installing a
-  GitHub App is how a user actually grants DevPulse access to specific repos (an OAuth
+  GitHub App is how a user actually grants Mergewise access to specific repos (an OAuth
   token alone can't do that).
 - The install flow follows the same CSRF pattern as OAuth login: a random state token is
   generated, stashed in the session, and checked on the way back — plus the organization
   the install is *for* is pinned server-side too, so the setup callback can't be tricked
   into attaching repos to the wrong org (tested — see `devpulse-backend/src/github/github.routes.test.ts`).
-- After install, DevPulse asks GitHub which repos the installation actually has access to
+- After install, Mergewise asks GitHub which repos the installation actually has access to
   (never trusting a client-supplied repo list) and upserts them into `Repository`, scoped
   to the org.
 - `GET /repositories` is scoped to the caller's own organization, resolved from their
@@ -140,7 +150,7 @@ exists to avoid.
   poll pass — always targets the same row and always reflects the *latest* fetch, never a
   stale merge of old and new.
 - **Unknown repo/installation is IGNORED, not FAILED**: if an event's repo+installation
-  don't match a connected `Repository` (disconnected since, or an installation DevPulse
+  don't match a connected `Repository` (disconnected since, or an installation Mergewise
   doesn't track), that's not an error — there's nothing to retry.
 - **404 vs. transient failure are handled differently, on purpose**: a GitHub 404 means the
   PR genuinely doesn't exist — permanent, so the event is marked `FAILED`. Anything else
@@ -201,7 +211,7 @@ exists to avoid.
   number/title, author, risk badge, status, updated) → `/pulls/:pullId` (title, branches,
   diff stats, and the full risk breakdown — every rule, triggered or not, with its points,
   explanation, and evidence file paths). This is the first slice where a person other than
-  the developer can actually look at DevPulse and understand what it does.
+  the developer can actually look at Mergewise and understand what it does.
 - **Multi-tenancy is enforced at the query layer, not bolted on after**: every PR lookup
   (`GET /pull-requests`, `GET /pull-requests/:id`, `GET /pull-requests/:id/risk`) resolves
   the caller's organization from their session and either scopes the query by
@@ -547,7 +557,7 @@ reused the persisted row instead of calling the LLM again.
   id in GitHub's redirect is client-supplied, so the account is looked up from
   GitHub and the installer must own it — be that user, or an owner of that GitHub
   organization (`devpulse-backend/src/organizations/github-link.service.ts`).
-  One GitHub account per DevPulse organization, and vice versa.
+  One GitHub account per Mergewise organization, and vice versa.
 - **Inviting.** Admins invite by email on `/members`. Each invitation is a
   random 256-bit link that works once and expires after 24 hours; only its
   SHA-256 hash is stored. It's emailed through Resend when `RESEND_API_KEY` and
@@ -876,7 +886,7 @@ packages/
   org selection once multi-org membership is a real scenario.
 - No UI affordance yet to *disconnect* a repository or re-run the install flow
   to add more repos to an existing installation — GitHub's install page
-  supports "Configure" for that today; a DevPulse-side control is a small
+  supports "Configure" for that today; a Mergewise-side control is a small
   follow-up, not scoped into this slice.
 - `GET /github/setup` doesn't yet distinguish `setup_action=install` from
   `setup_action=request` (the case where an org owner must approve the

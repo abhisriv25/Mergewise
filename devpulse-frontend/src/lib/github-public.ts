@@ -1,6 +1,6 @@
 /** Reads a public pull request straight from GitHub's REST API, in the
  * visitor's browser. Unauthenticated, so GitHub allows 60 requests an hour
- * per visitor IP. Nothing here goes through the DevPulse backend. */
+ * per visitor IP. Nothing here goes through the Mergewise backend. */
 
 export interface PrRef {
   owner: string;

@@ -1,4 +1,4 @@
-// DevPulse — Prisma schema v8
+// Mergewise — Prisma schema v8
 //
 // SCOPE NOTE (read this before adding tables):
 // Slice 1 added User, Organization, Membership. Slice 2 added Repository.
@@ -60,7 +60,7 @@ model Organization {
 
   /// The GitHub account (organization or user) this organization is tied
   /// to, set from the GitHub App installation itself — never typed in.
-  /// Unique so two DevPulse organizations can't claim one GitHub account.
+  /// Unique so two Mergewise organizations can't claim one GitHub account.
   /// Invitees must belong to it to join.
   githubAccountId      String?  @unique
   githubAccountLogin   String?
@@ -222,7 +222,7 @@ model PullRequest {
   additions         Int @default(0)
   deletions         Int @default(0)
   changedFilesCount Int @default(0)
-  // DevPulse's own bookkeeping: when *we* last wrote this row. Distinct
+  // Mergewise's own bookkeeping: when *we* last wrote this row. Distinct
   // from `updatedAt` above (GitHub's timestamp) on purpose — don't conflate
   // "when GitHub says this changed" with "when we last synced it".
   syncedAt     DateTime  @default(now()) @updatedAt

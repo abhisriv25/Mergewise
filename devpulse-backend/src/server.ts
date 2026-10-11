@@ -6,7 +6,7 @@ import { redis } from "./redis.js";
 import { startWebhookPoller } from "./pull-requests/webhook-poller.js";
 
 const server = app.listen(env.PORT, () => {
-  logger.info(`DevPulse API listening on http://localhost:${env.PORT}`);
+  logger.info(`Mergewise API listening on http://localhost:${env.PORT}`);
 });
 
 const webhookPoller = startWebhookPoller();

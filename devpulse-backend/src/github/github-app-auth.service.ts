@@ -49,7 +49,7 @@ export async function fetchInstallationAccessToken(installationId: string): Prom
       headers: {
         Authorization: `Bearer ${buildAppJwt()}`,
         Accept: "application/vnd.github+json",
-        "User-Agent": "devpulse",
+        "User-Agent": "mergewise",
       },
     },
   );
@@ -87,7 +87,7 @@ export async function fetchInstallationAccount(installationId: string): Promise<
     headers: {
       Authorization: `Bearer ${buildAppJwt()}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "devpulse",
+      "User-Agent": "mergewise",
     },
   });
 
@@ -110,7 +110,7 @@ async function githubYesNo(installationAccessToken: string, path: string): Promi
     headers: {
       Authorization: `Bearer ${installationAccessToken}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "devpulse",
+      "User-Agent": "mergewise",
     },
     redirect: "manual",
   });
@@ -155,7 +155,7 @@ export async function isGithubOrganizationOwner(
       headers: {
         Authorization: `Bearer ${installationAccessToken}`,
         Accept: "application/vnd.github+json",
-        "User-Agent": "devpulse",
+        "User-Agent": "mergewise",
       },
     },
   );
@@ -200,7 +200,7 @@ export async function fetchInstallationRepositories(
         headers: {
           Authorization: `Bearer ${installationAccessToken}`,
           Accept: "application/vnd.github+json",
-          "User-Agent": "devpulse",
+          "User-Agent": "mergewise",
         },
       },
     );

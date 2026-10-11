@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../env.js", () => ({
-  env: { RESEND_API_KEY: "re_test_key", EMAIL_FROM: "DevPulse <invites@example.com>" },
+  env: { RESEND_API_KEY: "re_test_key", EMAIL_FROM: "Mergewise <invites@example.com>" },
 }));
 
 const { sendInvitationEmail } = await import("./email.service.js");
@@ -28,7 +28,7 @@ describe("sendInvitationEmail", () => {
     expect(url).toBe("https://api.resend.com/emails");
     expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer re_test_key");
     const body = JSON.parse(String(init?.body));
-    expect(body.from).toBe("DevPulse <invites@example.com>");
+    expect(body.from).toBe("Mergewise <invites@example.com>");
     expect(body.to).toEqual(["dev@acme.com"]);
     expect(body.text).toContain(INPUT.url);
     expect(body.html).toContain("&lt;b&gt;Acme&lt;/b&gt; &amp; Co");

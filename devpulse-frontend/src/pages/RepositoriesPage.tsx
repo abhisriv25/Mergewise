@@ -14,12 +14,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   install_failed: "We couldn't finish syncing your repositories. Please try again.",
   admin_only: "Only your organization's admins can connect repositories. Ask one of them to add the repo.",
   not_account_owner:
-    "Only an owner of that GitHub account can connect it. Ask a GitHub organization owner to connect it from their DevPulse admin account.",
+    "Only an owner of that GitHub account can connect it. Ask a GitHub organization owner to connect it from their Mergewise admin account.",
   account_mismatch:
-    "This organization is already linked to a different GitHub account. Install DevPulse on that same account to add more repositories.",
-  account_taken: "That GitHub account is already linked to another DevPulse organization.",
+    "This organization is already linked to a different GitHub account. Install Mergewise on that same account to add more repositories.",
+  account_taken: "That GitHub account is already linked to another Mergewise organization.",
   app_permission_missing:
-    "The DevPulse GitHub App needs the new “Members: read” permission. A GitHub organization owner can accept it under Settings → GitHub Apps → DevPulse, then try again.",
+    "The Mergewise GitHub App needs the new “Members: read” permission. A GitHub organization owner can accept it under Settings → GitHub Apps → Mergewise, then try again.",
 };
 
 export function RepositoriesPage() {
@@ -82,7 +82,7 @@ export function RepositoriesPage() {
             <EmptyState
               icon={<RepoIcon size={18} />}
               title="Nothing connected yet"
-              description="Install the DevPulse GitHub App and choose which repositories to watch. It only asks for read access."
+              description="Install the Mergewise GitHub App and choose which repositories to watch. It only asks for read access."
               action={
                 <ButtonAnchor href={githubInstallUrl()} variant="solid">
                   <PlusIcon size={14} /> Connect repository

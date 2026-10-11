@@ -10,9 +10,9 @@ import { logger } from "../logger.js";
 import { prisma } from "../prisma.js";
 
 export type GithubLinkFailure =
-  /** This DevPulse organization is already tied to a different GitHub account. */
+  /** This Mergewise organization is already tied to a different GitHub account. */
   | "account_mismatch"
-  /** Another DevPulse organization already claimed that GitHub account. */
+  /** Another Mergewise organization already claimed that GitHub account. */
   | "account_taken"
   /** The signed-in person doesn't own the GitHub account they installed on. */
   | "not_account_owner";

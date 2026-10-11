@@ -54,7 +54,7 @@ export async function fetchGithubProfile(accessToken: string): Promise<GithubOAu
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "devpulse",
+      "User-Agent": "mergewise",
     },
   });
 

@@ -4,7 +4,7 @@ function headers(token: string) {
   return {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
-    "User-Agent": "devpulse",
+    "User-Agent": "mergewise",
   };
 }
 

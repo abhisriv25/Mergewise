@@ -58,7 +58,7 @@ export async function fetchPullRequest(
       headers: {
         Authorization: `Bearer ${installationAccessToken}`,
         Accept: "application/vnd.github+json",
-        "User-Agent": "devpulse",
+        "User-Agent": "mergewise",
       },
     },
   );
@@ -121,7 +121,7 @@ export async function fetchPullRequestFiles(
         headers: {
           Authorization: `Bearer ${installationAccessToken}`,
           Accept: "application/vnd.github+json",
-          "User-Agent": "devpulse",
+          "User-Agent": "mergewise",
         },
       },
     );
