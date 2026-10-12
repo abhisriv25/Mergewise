@@ -58,6 +58,6 @@ export const SITE = {
   name: "Mergewise",
   /** Shown on the Privacy and Terms pages. Leave "" to point people to the About page instead. */
   contactEmail: "",
-  sourceUrl: "https://github.com/abhisriv25/devpulse",
+  sourceUrl: "https://github.com/abhisriv25/Mergewise",
   policiesUpdated: "11 October 2026",
 };
