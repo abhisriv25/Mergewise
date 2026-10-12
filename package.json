@@ -2,14 +2,14 @@
   "name": "devpulse",
   "private": true,
   "workspaces": [
-    "devpulse-backend",
-    "devpulse-frontend"
+    "mergewise_backend",
+    "mergewise_frontend"
   ],
   "scripts": {
-    "dev:api": "npm run dev --workspace=devpulse-backend",
-    "dev:web": "npm run dev --workspace=devpulse-frontend",
-    "db:migrate": "npm run db:migrate --workspace=devpulse-backend",
-    "db:generate": "npm run db:generate --workspace=devpulse-backend"
+    "dev:api": "npm run dev --workspace=mergewise_backend",
+    "dev:web": "npm run dev --workspace=mergewise_frontend",
+    "db:migrate": "npm run db:migrate --workspace=mergewise_backend",
+    "db:generate": "npm run db:generate --workspace=mergewise_backend"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,

@@ -13,7 +13,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "paths": {
-      "@risk-engine/*": ["../devpulse-backend/src/risk/*"]
+      "@risk-engine/*": ["../mergewise_backend/src/risk/*"]
     }
   },
   "include": ["src"]

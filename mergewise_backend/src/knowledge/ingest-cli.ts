@@ -2,7 +2,7 @@ import { embedAllPendingChunks } from "../embeddings/embedding-pipeline.service.
 import { prisma } from "../prisma.js";
 import { ingestRepositoryDocs } from "./document-ingestion.service.js";
 
-// Usage: npm run ingest --workspace=devpulse-backend [-- <repositoryId>]  (default: every repository)
+// Usage: npm run ingest --workspace=mergewise_backend [-- <repositoryId>]  (default: every repository)
 const [repositoryId] = process.argv.slice(2);
 const repositories = repositoryId
   ? [{ id: repositoryId, fullName: repositoryId }]

@@ -6,4 +6,4 @@ build/
 !.env.example
 *.log
 .DS_Store
-devpulse-backend/prisma/generated/
+mergewise_backend/prisma/generated/

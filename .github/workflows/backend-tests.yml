@@ -7,13 +7,13 @@ on:
   push:
     branches: [main]
     paths:
-      - "devpulse-backend/**"
+      - "mergewise_backend/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/backend-tests.yml"
   pull_request:
     paths:
-      - "devpulse-backend/**"
+      - "mergewise_backend/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/backend-tests.yml"
@@ -31,10 +31,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --workspace=devpulse-backend --include-workspace-root=false
+      - run: npm ci --workspace=mergewise_backend --include-workspace-root=false
       - run: npx prisma generate
-        working-directory: devpulse-backend
+        working-directory: mergewise_backend
       - run: npx tsc --noEmit -p tsconfig.json
-        working-directory: devpulse-backend
+        working-directory: mergewise_backend
       - run: npm test
-        working-directory: devpulse-backend
+        working-directory: mergewise_backend

@@ -2,8 +2,8 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "devpulse-backend/Dockerfile",
-    "watchPatterns": ["devpulse-backend/**", "package.json", "package-lock.json", "railway.json"]
+    "dockerfilePath": "mergewise_backend/Dockerfile",
+    "watchPatterns": ["mergewise_backend/**", "package.json", "package-lock.json", "railway.json"]
   },
   "deploy": {
     "healthcheckPath": "/ready",

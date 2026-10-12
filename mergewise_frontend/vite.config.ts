@@ -9,7 +9,7 @@ export default defineConfig({
       // The backend's risk engine is pure (no I/O, no dependencies), so the
       // landing page runs the exact same code in the browser: one source of
       // truth for every rule and point value. Keep in sync with tsconfig paths.
-      "@risk-engine": fileURLToPath(new URL("../devpulse-backend/src/risk", import.meta.url)),
+      "@risk-engine": fileURLToPath(new URL("../mergewise_backend/src/risk", import.meta.url)),
     },
   },
   server: {

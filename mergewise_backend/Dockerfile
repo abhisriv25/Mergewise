@@ -1,5 +1,5 @@
 # Build from the repo root (the npm workspace lockfile lives there):
-#   docker build -f devpulse-backend/Dockerfile .
+#   docker build -f mergewise_backend/Dockerfile .
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
@@ -9,11 +9,11 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY devpulse-backend/package.json devpulse-backend/
-RUN npm ci --workspace=devpulse-backend --include-workspace-root=false
+COPY mergewise_backend/package.json mergewise_backend/
+RUN npm ci --workspace=mergewise_backend --include-workspace-root=false
 
-COPY devpulse-backend/ devpulse-backend/
-WORKDIR /app/devpulse-backend
+COPY mergewise_backend/ mergewise_backend/
+WORKDIR /app/mergewise_backend
 RUN npx prisma generate && npm run build
 
 ENV NODE_ENV=production
