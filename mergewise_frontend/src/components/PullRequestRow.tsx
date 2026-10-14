@@ -3,7 +3,7 @@ import type { PullRequestListItem } from "../lib/api";
 import { timeAgo } from "../lib/format";
 import { ChevronRightIcon, PullRequestIcon } from "./icons";
 import { RISK_META, RiskBadge } from "./risk";
-import { StatusPill, cx } from "./ui";
+import { STATUS_TEXT, StatusPill, cx } from "./ui";
 
 export function PullRequestRow({
   pr,
@@ -17,7 +17,6 @@ export function PullRequestRow({
   showStatus?: boolean;
 }) {
   const level = pr.latestRisk?.level;
-  const statusColor = pr.mergedAt ? "text-violet-600 dark:text-violet-400" : pr.state === "closed" ? "text-slate-500" : "text-emerald-600 dark:text-emerald-400";
 
   return (
     <li className="animate-fade-in" style={{ animationDelay: `${Math.min(index, 10) * 35}ms` }}>
@@ -31,7 +30,7 @@ export function PullRequestRow({
             aria-hidden="true"
           />
         )}
-        <PullRequestIcon size={16} className={cx("hidden shrink-0 sm:block", statusColor)} />
+        <PullRequestIcon size={16} className={cx("hidden shrink-0 sm:block", STATUS_TEXT[pr.status])} />
 
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white sm:truncate">
@@ -39,6 +38,11 @@ export function PullRequestRow({
           </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-slate-500">
             {showRepo && <span className="text-slate-600 dark:text-slate-400">{pr.repository.fullName}</span>}
+            {!showStatus && pr.status === "draft" && (
+              <span className="rounded border border-dashed border-slate-300 px-1 text-[10px] uppercase tracking-wider text-slate-500 dark:border-slate-600">
+                Draft
+              </span>
+            )}
             <span className="font-mono">#{pr.number}</span>
             <span aria-hidden="true">·</span>
             <span>{pr.author}</span>
@@ -55,7 +59,7 @@ export function PullRequestRow({
         <div className="flex shrink-0 items-center gap-2.5">
           {showStatus && (
             <span className="hidden md:inline-flex">
-              <StatusPill state={pr.state} mergedAt={pr.mergedAt} />
+              <StatusPill status={pr.status} />
             </span>
           )}
           {pr.latestRisk ? (

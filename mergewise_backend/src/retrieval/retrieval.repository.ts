@@ -21,7 +21,8 @@ interface Row {
 
 /** Tenant isolation is in the WHERE clause (KnowledgeSource.organizationId),
  * never a post-filter. Only chunks embedded with the same model/dimensions
- * as the query vector are comparable. */
+ * as the query vector are comparable. Docs from a disconnected repository
+ * are left out, so AI review never cites a repo the org stopped tracking. */
 export async function searchSimilarChunks(params: {
   organizationId: string;
   queryVector: number[];
@@ -35,7 +36,9 @@ export async function searchSimilarChunks(params: {
     FROM "DocumentChunk" c
     JOIN "Document" d ON d.id = c."documentId"
     JOIN "KnowledgeSource" ks ON ks.id = d."knowledgeSourceId"
+    LEFT JOIN "Repository" r ON r.id = ks."repositoryId"
     WHERE ks."organizationId" = ${params.organizationId}
+      AND r."disconnectedAt" IS NULL
       AND c.embedding IS NOT NULL
       AND c."embeddingModel" = ${params.model}
       AND c."embeddingDimensions" = ${params.queryVector.length}

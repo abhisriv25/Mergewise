@@ -5,14 +5,16 @@ const prismaMock = {
   user: { upsert: vi.fn(), findUnique: vi.fn() },
   organization: { create: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn() },
   membership: { create: vi.fn(), findFirst: vi.fn() },
-  repository: { findMany: vi.fn(), upsert: vi.fn() },
+  repository: { findMany: vi.fn(), findFirst: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
 };
 
 vi.mock("../prisma.js", () => ({ prisma: prismaMock }));
+const indexRepositoryDocsInBackgroundMock = vi.fn();
+vi.mock("../knowledge/docs-indexer.js", () => ({ indexRepositoryDocsInBackground: indexRepositoryDocsInBackgroundMock }));
 // This file signs in more than the real per-minute limit allows.
 vi.mock("../middleware/rate-limit.js", () => {
   const pass = (_req: unknown, _res: unknown, next: () => void) => next();
-  return { webhookRateLimiter: pass, authFlowRateLimiter: pass, invitationSendRateLimiter: pass, invitationLookupRateLimiter: pass };
+  return { webhookRateLimiter: pass, authFlowRateLimiter: pass, invitationSendRateLimiter: pass, invitationLookupRateLimiter: pass, reassessRateLimiter: pass, repositoryActionRateLimiter: pass };
 });
 
 const { app } = await import("../app.js");
@@ -67,6 +69,8 @@ beforeEach(() => {
   prismaMock.user.findUnique.mockResolvedValue(USER);
   prismaMock.organization.findUniqueOrThrow.mockResolvedValue({ id: "org-1", githubAccountId: null });
   prismaMock.organization.update.mockResolvedValue({});
+  prismaMock.repository.findMany.mockResolvedValue([]);
+  prismaMock.repository.upsert.mockResolvedValue({ id: "repo-1" });
 });
 
 /** Starts an install as an admin and returns the agent plus its state token. */
@@ -132,6 +136,8 @@ describe("GET /repositories", () => {
         fullName: "octocat/hello-world",
         private: false,
         connectedAt: new Date("2024-01-01T00:00:00.000Z"),
+        disconnectedAt: null,
+        docsIndexedAt: new Date("2024-01-02T00:00:00.000Z"),
       },
     ]);
 
@@ -149,6 +155,8 @@ describe("GET /repositories", () => {
         fullName: "octocat/hello-world",
         private: false,
         connectedAt: "2024-01-01T00:00:00.000Z",
+        disconnectedAt: null,
+        docsIndexedAt: "2024-01-02T00:00:00.000Z",
       },
     ]);
   });
@@ -229,6 +237,7 @@ describe("GET /github/setup", () => {
         create: expect.objectContaining({ organizationId: "org-1", githubRepoId: "1" }),
       }),
     );
+    expect(indexRepositoryDocsInBackgroundMock).toHaveBeenCalledWith(["repo-1"]);
   });
 
   it("links a GitHub organization when the installer is one of its owners", async () => {
@@ -297,5 +306,160 @@ describe("GET /github/setup", () => {
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe("http://localhost:5173/repositories?error=install_failed");
+  });
+});
+
+const DISCONNECTED_REPO = {
+  id: "repo-1",
+  organizationId: "org-1",
+  githubInstallationId: "99",
+  githubRepoId: "1",
+  owner: "octocat",
+  name: "hello-world",
+  fullName: "octocat/hello-world",
+  private: false,
+  connectedAt: new Date("2024-01-01T00:00:00.000Z"),
+  disconnectedAt: new Date("2024-02-01T00:00:00.000Z"),
+  docsIndexedAt: null,
+};
+
+/** An admin whose organization is already linked to installation 99. */
+function adminMembership(role: "ADMIN" | "MEMBER" = "ADMIN") {
+  return {
+    organizationId: "org-1",
+    role,
+    organization: { id: "org-1", githubInstallationId: "99" },
+  };
+}
+
+describe("POST /repositories/sync", () => {
+  it("refuses a MEMBER", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership("MEMBER"));
+    const agent = await loginAgent();
+
+    expect((await agent.post("/repositories/sync")).status).toBe(403);
+  });
+
+  it("re-reads the installation's repos, indexes new ones and disconnects ones GitHub no longer lists", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findMany.mockResolvedValue([
+      { ...DISCONNECTED_REPO, id: "repo-gone", githubRepoId: "2", disconnectedAt: null },
+    ]);
+    prismaMock.repository.upsert.mockResolvedValue({ id: "repo-new" });
+    const agent = await loginAgent();
+    stubGithubForSetup({ id: 42, login: "octocat", type: "User" });
+
+    const res = await agent.post("/repositories/sync");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ added: 1, disconnected: 1 });
+    expect(prismaMock.repository.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["repo-gone"] } },
+      data: { disconnectedAt: expect.any(Date) },
+    });
+    expect(indexRepositoryDocsInBackgroundMock).toHaveBeenCalledWith(["repo-new"]);
+  });
+
+  it("keeps a repo an admin disconnected disconnected, even though GitHub still lists it", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findMany.mockResolvedValue([DISCONNECTED_REPO]);
+    prismaMock.repository.upsert.mockResolvedValue(DISCONNECTED_REPO);
+    const agent = await loginAgent();
+    stubGithubForSetup({ id: 42, login: "octocat", type: "User" });
+
+    const res = await agent.post("/repositories/sync");
+
+    expect(res.body).toEqual({ added: 0, disconnected: 0 });
+    expect(prismaMock.repository.upsert.mock.calls[0][0].update).not.toHaveProperty("disconnectedAt");
+  });
+});
+
+describe("POST /repositories/:id/disconnect", () => {
+  it("refuses a MEMBER", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership("MEMBER"));
+    const agent = await loginAgent();
+
+    expect((await agent.post("/repositories/repo-1/disconnect")).status).toBe(403);
+    expect(prismaMock.repository.update).not.toHaveBeenCalled();
+  });
+
+  it("404s for a repository in another organization", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findFirst.mockResolvedValueOnce(null);
+    const agent = await loginAgent();
+
+    expect((await agent.post("/repositories/elsewhere/disconnect")).status).toBe(404);
+    expect(prismaMock.repository.findFirst).toHaveBeenCalledWith({ where: { id: "elsewhere", organizationId: "org-1" } });
+  });
+
+  it("marks the repository disconnected without deleting it", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findFirst.mockResolvedValueOnce({ ...DISCONNECTED_REPO, disconnectedAt: null });
+    prismaMock.repository.update.mockResolvedValueOnce(DISCONNECTED_REPO);
+    const agent = await loginAgent();
+
+    const res = await agent.post("/repositories/repo-1/disconnect");
+
+    expect(res.status).toBe(200);
+    expect(res.body.disconnectedAt).toBe("2024-02-01T00:00:00.000Z");
+    expect(prismaMock.repository.update).toHaveBeenCalledWith({
+      where: { id: "repo-1" },
+      data: { disconnectedAt: expect.any(Date) },
+    });
+  });
+});
+
+describe("POST /repositories/:id/reconnect", () => {
+  it("reconnects and re-indexes a repo the App can still see", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findFirst.mockResolvedValueOnce(DISCONNECTED_REPO);
+    prismaMock.repository.update.mockResolvedValueOnce({ ...DISCONNECTED_REPO, disconnectedAt: null });
+    const agent = await loginAgent();
+    stubGithubForSetup({ id: 42, login: "octocat", type: "User" });
+
+    const res = await agent.post("/repositories/repo-1/reconnect");
+
+    expect(res.status).toBe(200);
+    expect(res.body.disconnectedAt).toBeNull();
+    expect(prismaMock.repository.update).toHaveBeenCalledWith({ where: { id: "repo-1" }, data: { disconnectedAt: null } });
+    expect(indexRepositoryDocsInBackgroundMock).toHaveBeenCalledWith(["repo-1"]);
+  });
+
+  it("explains when GitHub no longer gives the App access to the repo", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.findFirst.mockResolvedValueOnce({ ...DISCONNECTED_REPO, githubRepoId: "404" });
+    const agent = await loginAgent();
+    stubGithubForSetup({ id: 42, login: "octocat", type: "User" });
+
+    const res = await agent.post("/repositories/repo-1/reconnect");
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("access_removed");
+    expect(prismaMock.repository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /github/setup?setup_action=update", () => {
+  it("re-syncs when an admin changed the installation's repos on GitHub", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    prismaMock.repository.upsert.mockResolvedValue({ id: "repo-new" });
+    const agent = await loginAgent();
+    stubGithubForSetup({ id: 42, login: "octocat", type: "User" });
+
+    const res = await agent.get("/github/setup?installation_id=99&setup_action=update");
+
+    expect(res.headers.location).toBe("http://localhost:5173/repositories");
+    expect(prismaMock.repository.upsert).toHaveBeenCalled();
+    expect(prismaMock.organization.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses an installation that isn't the admin's organization's", async () => {
+    prismaMock.membership.findFirst.mockResolvedValue(adminMembership());
+    const agent = await loginAgent();
+
+    const res = await agent.get("/github/setup?installation_id=12345&setup_action=update");
+
+    expect(res.headers.location).toBe("http://localhost:5173/repositories?error=install_failed");
+    expect(prismaMock.repository.upsert).not.toHaveBeenCalled();
   });
 });

@@ -37,3 +37,20 @@ export const invitationLookupRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/** Re-assessing a PR costs two GitHub API calls (the PR, then its files) —
+ * a handful a minute covers someone clicking through a review queue. */
+export const reassessRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Admin repository actions (sync, disconnect, reconnect) each call GitHub. */
+export const repositoryActionRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});

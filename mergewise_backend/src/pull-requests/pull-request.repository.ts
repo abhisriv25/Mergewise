@@ -18,6 +18,7 @@ export async function upsertPullRequest(repositoryId: string, pr: GithubPullRequ
     title: pr.title,
     body: pr.body,
     state: pr.state,
+    draft: pr.draft,
     author,
     baseBranch: pr.baseBranch,
     headBranch: pr.headBranch,

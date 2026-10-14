@@ -192,3 +192,61 @@ describe("POST /webhooks/github", () => {
     expect(res.status).toBe(500);
   });
 });
+
+describe("POST /webhooks/github — events beyond pull requests", () => {
+  async function deliver(eventType: string, payload: unknown) {
+    const body = JSON.stringify(payload);
+    prismaMock.webhookEvent.create.mockResolvedValueOnce({});
+    await post(body, {
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": `delivery-${eventType}-${Math.random()}`,
+      "X-GitHub-Event": eventType,
+    });
+    return prismaMock.webhookEvent.create.mock.calls.at(-1)?.[0].data.status;
+  }
+
+  function push(overrides: Record<string, unknown> = {}) {
+    return {
+      ref: "refs/heads/main",
+      repository: { id: 555, default_branch: "main" },
+      installation: { id: 777 },
+      commits: [{ added: [], modified: ["docs/architecture.md"], removed: [] }],
+      ...overrides,
+    };
+  }
+
+  it.each(["edited", "ready_for_review", "converted_to_draft"])("queues a pull_request %s action", async (action) => {
+    expect(await deliver("pull_request", { action, repository: { id: 555 }, installation: { id: 777 } })).toBe("RECEIVED");
+  });
+
+  it("queues a push to the default branch that changes docs", async () => {
+    expect(await deliver("push", push())).toBe("RECEIVED");
+  });
+
+  it("queues a push that changes the README", async () => {
+    expect(await deliver("push", push({ commits: [{ modified: ["README.md"] }] }))).toBe("RECEIVED");
+  });
+
+  it("ignores a push that changes no docs", async () => {
+    expect(await deliver("push", push({ commits: [{ modified: ["src/index.ts"] }] }))).toBe("IGNORED");
+  });
+
+  it("ignores a push to any other branch", async () => {
+    expect(await deliver("push", push({ ref: "refs/heads/feature" }))).toBe("IGNORED");
+  });
+
+  it("queues a push too long for GitHub to list every commit", async () => {
+    const commits = Array.from({ length: 20 }, () => ({ modified: ["src/index.ts"] }));
+    expect(await deliver("push", push({ commits }))).toBe("RECEIVED");
+  });
+
+  it("queues repos being added to or removed from the installation", async () => {
+    expect(await deliver("installation_repositories", { action: "added", installation: { id: 777 } })).toBe("RECEIVED");
+    expect(await deliver("installation_repositories", { action: "removed", installation: { id: 777 } })).toBe("RECEIVED");
+  });
+
+  it("queues the App being uninstalled, but not other installation actions", async () => {
+    expect(await deliver("installation", { action: "deleted", installation: { id: 777 } })).toBe("RECEIVED");
+    expect(await deliver("installation", { action: "created", installation: { id: 777 } })).toBe("IGNORED");
+  });
+});

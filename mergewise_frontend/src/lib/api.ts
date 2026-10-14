@@ -167,10 +167,30 @@ export interface Repository {
   fullName: string;
   private: boolean;
   connectedAt: string;
+  /** Set while the repo is disconnected: its PRs are hidden and its
+   * webhooks ignored, but nothing is deleted. */
+  disconnectedAt: string | null;
+  /** When README + docs/ were last indexed for AI review. */
+  docsIndexedAt: string | null;
 }
 
+/** Every repository, disconnected ones included. */
 export function fetchRepositories(): Promise<{ repositories: Repository[] }> {
   return apiFetch<{ repositories: Repository[] }>("/repositories");
+}
+
+/** Re-reads the GitHub App installation's repo list (admins only). */
+export function syncRepositories(): Promise<{ added: number; disconnected: number }> {
+  return apiFetch("/repositories/sync", { method: "POST" });
+}
+
+export function disconnectRepository(id: string): Promise<Repository> {
+  return apiFetch<Repository>(`/repositories/${id}/disconnect`, { method: "POST" });
+}
+
+/** 409 with code "access_removed" when the GitHub App can no longer see the repo. */
+export function reconnectRepository(id: string): Promise<Repository> {
+  return apiFetch<Repository>(`/repositories/${id}/reconnect`, { method: "POST" });
 }
 
 /** Not a fetch — a plain link the browser navigates to directly, same as
@@ -192,8 +212,11 @@ export interface PullRequestRepositorySummary {
 export interface LatestRiskSummary {
   score: number;
   level: RiskLevel;
-  createdAt: string;
 }
+
+/** GitHub's open/closed split further: "open" means open and ready for
+ * review; drafts, merged and closed-unmerged PRs are their own statuses. */
+export type PullRequestStatus = "open" | "draft" | "merged" | "closed";
 
 export interface PullRequestListItem {
   id: string;
@@ -201,6 +224,8 @@ export interface PullRequestListItem {
   title: string;
   author: string;
   state: string;
+  draft: boolean;
+  status: PullRequestStatus;
   url: string;
   updatedAt: string;
   closedAt: string | null;
@@ -218,6 +243,8 @@ export interface PullRequestDetail {
   title: string;
   body: string | null;
   state: string;
+  draft: boolean;
+  status: PullRequestStatus;
   author: string;
   baseBranch: string;
   headBranch: string;
@@ -252,13 +279,59 @@ export interface RiskAssessment {
   createdAt: string;
 }
 
-export function fetchPullRequests(filters: { repositoryId?: string } = {}): Promise<{
+export interface PullRequestFilters {
+  repositoryId?: string;
+  status?: PullRequestStatus | "all";
+  /** Comma-separated risk levels, or "attention" for HIGH + CRITICAL. */
+  risk?: string;
+  q?: string;
+  sort?: "risk" | "updated";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PullRequestPage {
   pullRequests: PullRequestListItem[];
-}> {
+  page: number;
+  pageSize: number;
+  /** Matching PRs across every page. */
+  total: number;
+  /** Per-status totals under the other filters, for the status tabs. */
+  statusCounts: Record<PullRequestStatus | "all", number>;
+}
+
+/** One page of PRs; filtering, sorting and paging all happen server-side. */
+export function fetchPullRequests(filters: PullRequestFilters = {}): Promise<PullRequestPage> {
   const params = new URLSearchParams();
-  if (filters.repositoryId) params.set("repositoryId", filters.repositoryId);
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
   const query = params.toString();
-  return apiFetch<{ pullRequests: PullRequestListItem[] }>(`/pull-requests${query ? `?${query}` : ""}`);
+  return apiFetch<PullRequestPage>(`/pull-requests${query ? `?${query}` : ""}`);
+}
+
+export interface RepositoryPullRequestSummary {
+  repositoryId: string;
+  tracked: number;
+  open: number;
+  needsAttention: number;
+  worst: LatestRiskSummary | null;
+}
+
+/** Org-wide and per-repository counts, computed server-side so they're
+ * right however many PRs there are. "Open" excludes drafts. */
+export interface PullRequestSummary {
+  tracked: number;
+  open: number;
+  draft: number;
+  needsAttention: number;
+  averageOpenScore: number | null;
+  openRiskCounts: Record<RiskLevel, number>;
+  repositories: RepositoryPullRequestSummary[];
+}
+
+export function fetchPullRequestSummary(): Promise<PullRequestSummary> {
+  return apiFetch<PullRequestSummary>("/pull-requests/summary");
 }
 
 export function fetchPullRequest(id: string): Promise<PullRequestDetail> {
@@ -270,6 +343,12 @@ export function fetchPullRequest(id: string): Promise<PullRequestDetail> {
  * a loading state, not assume this is instant. */
 export function fetchPullRequestRisk(id: string): Promise<RiskAssessment> {
   return apiFetch<RiskAssessment>(`/pull-requests/${id}/risk`);
+}
+
+/** Refetches the PR from GitHub and scores it again, even if the stored
+ * score still looks current. */
+export function reassessPullRequest(id: string): Promise<RiskAssessment> {
+  return apiFetch<RiskAssessment>(`/pull-requests/${id}/risk/reassess`, { method: "POST" });
 }
 
 export type ConfidenceLevel = "LOW" | "MEDIUM" | "HIGH";
