@@ -44,8 +44,21 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function fetchCurrentUser(): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>("/me");
+/** The signed-in user, or null for a visitor. Uses /session rather than
+ * /me so a signed-out visit isn't logged as a failed (401) request. */
+export async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const { user } = await apiFetch<{ user: CurrentUser | null }>("/session");
+    return user;
+  } catch (err) {
+    // An API deployed before /session existed: ask /me instead, where a 401
+    // still means "signed out".
+    if (!(err instanceof ApiError && err.status === 404)) throw err;
+    return apiFetch<CurrentUser>("/me").catch((meErr) => {
+      if (meErr instanceof ApiError && meErr.status === 401) return null;
+      throw meErr;
+    });
+  }
 }
 
 /** Creates an organization with the caller as its ADMIN. Only for users who

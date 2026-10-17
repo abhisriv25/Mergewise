@@ -95,7 +95,11 @@ authRouter.post("/auth/logout", (req, res) => {
   });
 });
 
-authRouter.get("/me", requireAuth, async (req, res) => {
+/** The signed-in user with their organizations, or null when the session
+ * has no user (or its user was deleted, which also ends the session). */
+async function loadSessionUser(req: Request) {
+  if (!req.session.userId) return null;
+
   const user = await prisma.user.findUnique({
     where: { id: req.session.userId },
     include: { memberships: { include: { organization: true } } },
@@ -103,18 +107,17 @@ authRouter.get("/me", requireAuth, async (req, res) => {
 
   if (!user) {
     req.session.destroy(() => {});
-    res.status(401).json({ error: { message: "Not signed in" } });
-    return;
+    return null;
   }
 
-  // Every app page loads /me, so this is "last active" — written at most
-  // every few minutes rather than on every request.
+  // Every app page loads the current user, so this is "last active" —
+  // written at most every few minutes rather than on every request.
   const now = new Date();
   if (!user.lastActiveAt || now.getTime() - user.lastActiveAt.getTime() > LAST_ACTIVE_RESOLUTION_MS) {
     await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: now } });
   }
 
-  res.json({
+  return {
     id: user.id,
     githubLogin: user.githubLogin,
     displayName: user.displayName,
@@ -125,5 +128,23 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       slug: m.organization.slug,
       role: m.role,
     })),
-  });
+  };
+}
+
+authRouter.get("/me", requireAuth, async (req, res) => {
+  const user = await loadSessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: { message: "Not signed in" } });
+    return;
+  }
+  res.json(user);
+});
+
+/** Who's signed in, if anyone. Unlike /me, a visitor who isn't signed in
+ * gets a normal 200 with `user: null` — the public landing page asks this
+ * on every visit, and a 401 there would put an error in every visitor's
+ * browser console. */
+authRouter.get("/session", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ user: await loadSessionUser(req) });
 });

@@ -45,3 +45,13 @@ describe("GET /me", () => {
     expect(res.body.error.message).toBeTruthy();
   });
 });
+
+describe("GET /session", () => {
+  it("answers 200 with no user when not signed in, so visitors see no error", async () => {
+    const res = await request(app).get("/session");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ user: null });
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+});
