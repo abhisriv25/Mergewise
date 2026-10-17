@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ContactLine, DocSection, DocumentPage, GlanceCard } from "../components/PublicLayout";
 import { AlertIcon, EyeOffIcon, LockIcon, LogOutIcon } from "../components/icons";
+import { usePageTitle } from "../lib/use-page-title";
 
 const SECTIONS = [
   { id: "the-service", title: "The service" },
@@ -19,6 +20,7 @@ const KEY_POINTS = [
 ];
 
 export function TermsPage() {
+  usePageTitle("Terms of service");
   return (
     <DocumentPage
       eyebrow="Terms of use"

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ContactLine, DocSection, DocumentPage, GlanceCard } from "../components/PublicLayout";
 import { EyeOffIcon, LockIcon, ServerIcon, ShieldCheckIcon } from "../components/icons";
+import { usePageTitle } from "../lib/use-page-title";
 
 const HIGHLIGHTS = [
   { icon: <EyeOffIcon size={16} />, title: "No source code stored", text: "We keep file names and line counts — never file contents or diffs." },
@@ -22,6 +23,7 @@ const SECTIONS = [
 ];
 
 export function PrivacyPage() {
+  usePageTitle("Privacy policy");
   return (
     <DocumentPage
       eyebrow="Privacy policy"

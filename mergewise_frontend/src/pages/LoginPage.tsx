@@ -25,16 +25,48 @@ import {
 import { GridLines, PAGE_CONTAINER, PublicLayout } from "../components/PublicLayout";
 import { Reveal } from "../components/Reveal";
 import { ScoreLab } from "../components/ScoreLab";
-import { RISK_META, RiskBadge, ScoreComposition, ScoreRing } from "../components/risk";
+import { RISK_META, RiskBadge, ScoreComposition, ScoreRing, signalMeta } from "../components/risk";
 import { buttonClasses, cx } from "../components/ui";
-import { githubLoginUrl, type RiskLevel, type RiskSignal } from "../lib/api";
+import { githubLoginUrl, type RiskLevel } from "../lib/api";
+import { EXAMPLE_PR, EXAMPLE_RISK, EXAMPLE_SIGNALS, exampleDetail } from "../lib/example-pr";
+import {
+  DEPENDENCY_CHANGE_POINTS,
+  DIFF_SIZE_BUCKETS,
+  FILE_COUNT_BUCKETS,
+  MAX_SCORE,
+  MIGRATION_CHANGE_POINTS,
+  NO_TEST_FILES_POINTS,
+  SENSITIVE_PATHS_SUMMARY,
+  SENSITIVE_PATH_POINTS,
+} from "../lib/risk-engine";
 import { SITE } from "../lib/site";
+import { usePageTitle } from "../lib/use-page-title";
 
-// Every number on this page comes from the backend's risk-rules.config.ts,
-// so the marketing copy can't drift from what the engine actually does.
+// Point values, path lists and the example PR's score are imported from the
+// backend's risk engine (see lib/risk-engine.ts and lib/example-pr.ts), so
+// the copy can't drift from what the engine actually does.
+
+const bucketRange = (buckets: { points: number }[]) => `0–${buckets[buckets.length - 1].points}`;
+const bucketPoints = (buckets: { points: number }[]) => buckets.map((b) => b.points).join(", ");
+/** "0–49, 50–199, …, 1000+" from the buckets themselves. */
+const bucketRanges = (buckets: { maxInclusive: number }[], unit: string, start = 0) =>
+  `// ${buckets
+    .map((b, i) => {
+      const from = i === 0 ? start : buckets[i - 1].maxInclusive + 1;
+      return Number.isFinite(b.maxInclusive) ? `${from}–${b.maxInclusive}` : `${from}+`;
+    })
+    .join(", ")} ${unit}`;
 
 const QUEUE: { number: number; title: string; author: string; repo: string; risk: RiskLevel; score: number; age: string }[] = [
-  { number: 482, title: "Rework session refresh to avoid token race", author: "priyaverma", repo: "acme/api", risk: "HIGH", score: 60, age: "12m" },
+  {
+    number: EXAMPLE_PR.number,
+    title: EXAMPLE_PR.title,
+    author: EXAMPLE_PR.author,
+    repo: EXAMPLE_PR.repo,
+    risk: EXAMPLE_RISK.level,
+    score: EXAMPLE_RISK.score,
+    age: "12m",
+  },
   { number: 118, title: "Rotate IAM role for deploy pipeline", author: "m-okafor", repo: "acme/infra", risk: "MEDIUM", score: 35, age: "1h" },
   { number: 479, title: "Add pagination to /pull-requests", author: "jrs-dev", repo: "acme/api", risk: "MEDIUM", score: 30, age: "2h" },
   { number: 481, title: "Bump eslint to 9.12", author: "priyaverma", repo: "acme/web", risk: "LOW", score: 10, age: "3h" },
@@ -59,44 +91,44 @@ const SIGNALS: { icon: ReactNode; title: string; points: string; text: string; e
   {
     icon: <LockIcon size={18} />,
     title: "Sensitive code",
-    points: "+20",
-    text: "Changes under auth, security, payments, billing, secrets or IAM — matched on exact path segments, never substrings.",
-    example: "src/auth/session.ts",
+    points: `+${SENSITIVE_PATH_POINTS}`,
+    text: `Changes to ${SENSITIVE_PATHS_SUMMARY}. Matched on exact path segments, never substrings.`,
+    example: exampleDetail("SENSITIVE_PATH"),
   },
   {
     icon: <DatabaseIcon size={18} />,
     title: "Database migrations",
-    points: "+15",
+    points: `+${MIGRATION_CHANGE_POINTS}`,
     text: "Schema changes are the hardest thing to roll back, so anything in a migrations directory is flagged.",
-    example: "db/migrations/0042_tokens.sql",
+    example: exampleDetail("MIGRATION_CHANGE"),
   },
   {
     icon: <FlaskIcon size={18} />,
     title: "Missing tests",
-    points: "+15",
+    points: `+${NO_TEST_FILES_POINTS}`,
     text: "Code changed but no test file did. Nothing verifies the new behaviour.",
-    example: "0 of 7 files are tests",
+    example: exampleDetail("NO_TEST_FILES"),
   },
   {
     icon: <PackageIcon size={18} />,
     title: "Dependency changes",
-    points: "+10",
+    points: `+${DEPENDENCY_CHANGE_POINTS}`,
     text: "Manifests and lockfiles across npm, Yarn, pnpm, pip, Poetry, Go, Cargo, Bundler, Maven and Gradle.",
     example: "package-lock.json",
   },
   {
     icon: <DiffIcon size={18} />,
     title: "Diff size",
-    points: "0–30",
+    points: bucketRange(DIFF_SIZE_BUCKETS),
     text: "Additions plus deletions, bucketed. Big diffs hide small mistakes.",
-    example: "+412 −96 lines",
+    example: exampleDetail("DIFF_SIZE"),
   },
   {
     icon: <LayersIcon size={18} />,
     title: "Files touched",
-    points: "0–30",
+    points: bucketRange(FILE_COUNT_BUCKETS),
     text: "Changes spread across many files are harder to reason about as a whole.",
-    example: "23 files changed",
+    example: exampleDetail("FILE_COUNT"),
   },
 ];
 
@@ -121,19 +153,11 @@ const STEPS = [
   },
 ];
 
-const EXAMPLE_SIGNALS: RiskSignal[] = [
-  { code: "SENSITIVE_PATH", triggered: true, points: 20, explanation: "", evidence: ["src/auth/session.ts"] },
-  { code: "MIGRATION_CHANGE", triggered: true, points: 15, explanation: "", evidence: ["db/migrations/0042_tokens.sql"] },
-  { code: "NO_TEST_FILES", triggered: true, points: 15, explanation: "", evidence: [] },
-  { code: "DIFF_SIZE", triggered: true, points: 10, explanation: "", evidence: [] },
-];
-
-const BREAKDOWN = [
-  { icon: <LockIcon size={14} />, label: "Sensitive code", detail: "src/auth/session.ts", points: 20 },
-  { icon: <DatabaseIcon size={14} />, label: "Database migration", detail: "db/migrations/0042_tokens.sql", points: 15 },
-  { icon: <FlaskIcon size={14} />, label: "No tests changed", detail: "0 of 7 files are tests", points: 15 },
-  { icon: <DiffIcon size={14} />, label: "Diff size", detail: "+412 −96 lines", points: 10 },
-];
+/** The example PR's triggered rules, biggest first — they add up to its score. */
+const BREAKDOWN = [...EXAMPLE_SIGNALS]
+  .sort((a, b) => b.points - a.points)
+  .map((s) => ({ icon: signalMeta(s.code).icon, label: signalMeta(s.code).label, detail: exampleDetail(s.code), points: s.points }));
+const EXAMPLE_LABEL = `${EXAMPLE_RISK.score} · ${RISK_META[EXAMPLE_RISK.level].label}`;
 
 const LEVELS: { level: RiskLevel; range: string; meaning: string }[] = [
   { level: "LOW", range: "0–24", meaning: "Skim it" },
@@ -171,7 +195,7 @@ const TRUST = [
   {
     icon: <SparkleIcon size={20} />,
     title: "AI reads your docs, not your code",
-    text: "AI review only reads your repo's README and docs, never your source code, and only runs for Medium-risk PRs and above.",
+    text: "AI review sees the pull request's title, description and changed file names, plus your README and docs/. Never the contents of your source files. It only runs for Medium-risk PRs and above.",
   },
 ];
 
@@ -220,6 +244,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
 ];
 
 export function LoginPage() {
+  usePageTitle(null);
   const [searchParams] = useSearchParams();
   const oauthFailed = searchParams.get("error") === "oauth_failed";
 
@@ -442,9 +467,9 @@ function ProductWindow() {
           </div>
 
           <div className="hidden border-l border-slate-200 bg-slate-50/60 p-5 sm:block dark:border-white/10 dark:bg-white/[0.02]">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">#482 risk</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">#{EXAMPLE_PR.number} risk</p>
             <div className="mt-4 flex justify-center">
-              <ScoreRing score={60} level="HIGH" size={112} stroke={9} />
+              <ScoreRing score={EXAMPLE_RISK.score} level={EXAMPLE_RISK.level} size={112} stroke={9} />
             </div>
             <div className="mt-5 space-y-2.5">
               {BREAKDOWN.map((row) => (
@@ -469,7 +494,9 @@ function ProductWindow() {
         </span>
         <div>
           <p className="text-[12px] font-semibold text-slate-900 dark:text-white">pull_request.opened</p>
-          <p className="font-mono text-[11px] text-slate-500">acme/api #482 → scored 60 · High</p>
+          <p className="font-mono text-[11px] text-slate-500">
+            {EXAMPLE_PR.repo} #{EXAMPLE_PR.number} → scored {EXAMPLE_LABEL}
+          </p>
         </div>
       </div>
     </div>
@@ -505,12 +532,16 @@ function EcosystemStrip() {
         <p className="shrink-0 text-center text-sm font-medium text-slate-500 lg:text-left dark:text-slate-400">
           Understands dependency changes in
         </p>
-        <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+        <p className="sr-only">{ECOSYSTEMS.map((eco) => `${eco.name} (${eco.file})`).join(", ")}</p>
+        <div
+          className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
+          aria-hidden="true"
+        >
+          {/* Rendered twice for a seamless loop; screen readers get the list above instead. */}
           <ul className="flex w-max animate-marquee gap-3 hover:[animation-play-state:paused]">
             {items.map((eco, i) => (
               <li
                 key={`${eco.name}-${i}`}
-                aria-hidden={i >= ECOSYSTEMS.length ? "true" : undefined}
                 className="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white px-4 py-2 dark:border-white/10 dark:bg-white/[0.03]"
               >
                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{eco.name}</span>
@@ -551,7 +582,7 @@ function SignalsSection() {
           align="left"
           eyebrow="The engine"
           title="Six signals. One honest number."
-          text="No machine-learning guesswork in the score. Mergewise applies a small set of transparent, documented rules that senior reviewers already check by instinct. AI comes in afterwards: to explain, never to decide."
+          text={`No machine-learning guesswork in the score. Mergewise applies a small set of transparent, documented rules that senior reviewers already check by instinct, and adds up their points. The total is capped at ${MAX_SCORE}. AI comes in afterwards: to explain, never to decide.`}
           sticky
         >
           <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 font-mono text-[12px] leading-relaxed shadow-lg dark:border-white/10 dark:bg-black/40 dark:shadow-none">
@@ -564,7 +595,13 @@ function SignalsSection() {
                 <span className="text-sky-300">export const</span> SENSITIVE_PATH_POINTS = <span className="text-amber-300">20</span>;{"\n"}
                 <span className="text-sky-300">export const</span> MIGRATION_CHANGE_POINTS = <span className="text-amber-300">15</span>;{"\n"}
                 <span className="text-sky-300">export const</span> NO_TEST_FILES_POINTS = <span className="text-amber-300">15</span>;{"\n"}
-                <span className="text-sky-300">export const</span> DEPENDENCY_CHANGE_POINTS = <span className="text-amber-300">10</span>;
+                <span className="text-sky-300">export const</span> DEPENDENCY_CHANGE_POINTS = <span className="text-amber-300">10</span>;{"\n"}
+                <span className="text-slate-500">{bucketRanges(DIFF_SIZE_BUCKETS, "lines")}</span>{"\n"}
+                <span className="text-sky-300">export const</span> DIFF_SIZE_BUCKETS = [<span className="text-amber-300">{bucketPoints(DIFF_SIZE_BUCKETS)}</span>];{"\n"}
+                <span className="text-slate-500">{bucketRanges(FILE_COUNT_BUCKETS, "files", 1)}</span>{"\n"}
+                <span className="text-sky-300">export const</span> FILE_COUNT_BUCKETS = [<span className="text-amber-300">{bucketPoints(FILE_COUNT_BUCKETS)}</span>];{"\n"}
+                <span className="text-sky-300">export const</span> MAX_SCORE = <span className="text-amber-300">{MAX_SCORE}</span>;{" "}
+                <span className="text-slate-500">{"// the total is capped here"}</span>
               </code>
             </pre>
           </div>
@@ -690,22 +727,22 @@ function ScoreSection() {
           <div className="relative" aria-hidden="true">
             <div className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-orange-200/60 via-transparent to-indigo-200/50 blur-2xl dark:from-orange-500/15 dark:to-indigo-500/15" />
             <div className={WINDOW}>
-              <WindowChrome label="acme/api · Pull request #482" />
+              <WindowChrome label={`${EXAMPLE_PR.repo} · Pull request #${EXAMPLE_PR.number}`} />
               <div className="flex items-center gap-5 border-b border-slate-200 p-6 dark:border-white/10">
-                <ScoreRing score={60} level="HIGH" size={108} stroke={9} />
+                <ScoreRing score={EXAMPLE_RISK.score} level={EXAMPLE_RISK.level} size={108} stroke={9} />
                 <div className="min-w-0">
-                  <p className="font-mono text-xs text-slate-500">acme/api #482 · priyaverma</p>
-                  <p className="mt-1.5 text-lg font-semibold leading-snug text-slate-900 dark:text-white">
-                    Rework session refresh to avoid token race
+                  <p className="font-mono text-xs text-slate-500">
+                    {EXAMPLE_PR.repo} #{EXAMPLE_PR.number} · {EXAMPLE_PR.author}
                   </p>
+                  <p className="mt-1.5 text-lg font-semibold leading-snug text-slate-900 dark:text-white">{EXAMPLE_PR.title}</p>
                   <div className="mt-3">
-                    <RiskBadge level="HIGH" />
+                    <RiskBadge level={EXAMPLE_RISK.level} />
                   </div>
                 </div>
               </div>
 
               <div className="border-b border-slate-200 px-6 py-5 dark:border-white/10">
-                <ScoreComposition signals={EXAMPLE_SIGNALS} level="HIGH" />
+                <ScoreComposition signals={EXAMPLE_SIGNALS} level={EXAMPLE_RISK.level} />
               </div>
 
               <ul className="divide-y divide-slate-100 dark:divide-white/[0.06]">
@@ -742,7 +779,7 @@ const SCORE_TODAY = [
 ];
 
 const EXPLANATION = [
-  "Reads your repo's README and docs/",
+  "Reads the PR's title, description and file names, plus your README and docs/",
   "Summarises the risk in plain English",
   "Findings and recommendations that cite your docs",
   "Only for Medium-risk pull requests and above",
@@ -853,7 +890,7 @@ function AiReviewPreview() {
     <div className="relative" aria-label="Example of an AI review (preview)">
       <div className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-indigo-200/60 via-transparent to-violet-200/50 blur-2xl dark:from-indigo-500/15 dark:to-violet-500/15" />
       <div className={WINDOW}>
-        <WindowChrome label="acme/api · Pull request #482" />
+        <WindowChrome label={`${EXAMPLE_PR.repo} · Pull request #${EXAMPLE_PR.number}`} />
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-white/10">
           <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <SparkleIcon size={15} className="text-indigo-500 dark:text-indigo-300" /> AI review
@@ -869,12 +906,13 @@ function AiReviewPreview() {
               <span className="rounded-full px-2 py-0.5 text-slate-700 ring-1 ring-inset ring-slate-300 dark:text-slate-300 dark:ring-white/15">
                 medium confidence
               </span>
-              <span>explains a score of 60 · High</span>
+              <span>explains a score of {EXAMPLE_LABEL}</span>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-800 dark:text-slate-200">
-              This PR rewrites how session tokens are refreshed in <code className="font-mono text-[13px]">src/auth/</code>{" "}
-              and adds a migration for a new tokens table. Your team's security guide asks for a second reviewer on any
-              auth change, and none of the changed files are tests.
+              Going by its description, this PR reworks how session tokens are refreshed. It changes three files under{" "}
+              <code className="font-mono text-[13px]">src/auth/</code> and adds a migration for a tokens table. Your security
+              guide asks for a second reviewer on auth changes, and none of the {EXAMPLE_PR.changedFiles.length} changed files
+              are tests.
             </p>
           </div>
 
@@ -882,11 +920,11 @@ function AiReviewPreview() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Findings</p>
             <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/[0.03]">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">Refresh path skips the expiry check</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Auth changes need a second reviewer</p>
                 <RiskBadge level="HIGH" size="sm" />
               </div>
               <p className="mt-1.5 text-[13px] text-slate-600 dark:text-slate-400">
-                Tokens are re-signed on refresh without checking whether the old one has expired.
+                docs/security.md requires two approvals for any change under src/auth/, and this PR changes three files there.
               </p>
             </div>
           </div>
@@ -896,7 +934,7 @@ function AiReviewPreview() {
             <ul className="mt-2.5 space-y-3">
               {[
                 { action: "Request a review from the security owners", source: "docs/security.md" },
-                { action: "Add a test for expired refresh tokens", source: "docs/testing.md" },
+                { action: "Add tests for the new refresh flow before merging", source: "docs/testing.md" },
               ].map((r) => (
                 <li key={r.action} className="flex gap-3 text-sm">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-indigo-500" />

@@ -7,6 +7,7 @@ import { githubInstallUrl, type PullRequestListItem, type Repository } from "../
 import { plural, timeAgo } from "../lib/format";
 import { usePullRequests } from "../lib/use-pull-requests";
 import { useRepositories } from "../lib/use-repositories";
+import { usePageTitle } from "../lib/use-page-title";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_callback: "GitHub didn't send back what we expected. Please try connecting again.",
@@ -23,6 +24,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function RepositoriesPage() {
+  usePageTitle("Repositories");
   const [searchParams] = useSearchParams();
   const repos = useRepositories();
   const prs = usePullRequests();

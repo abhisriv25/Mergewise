@@ -104,7 +104,7 @@ function SidebarContent() {
   async function handleLogout() {
     await logout().catch(() => undefined);
     queryClient.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   const org = user?.organizations[0];

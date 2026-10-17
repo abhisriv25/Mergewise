@@ -30,6 +30,7 @@ import {
 } from "../lib/api";
 import { formatDateTime, plural, timeAgo } from "../lib/format";
 import { useCurrentUser } from "../lib/use-current-user";
+import { usePageTitle } from "../lib/use-page-title";
 
 const MAX_INVITES = 20;
 
@@ -47,6 +48,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Admin-only: everyone in the organization, invitations still open, and
  * the controls to invite, re-role and remove people. */
 export function MembersPage() {
+  usePageTitle("Members");
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const isAdmin = user?.organizations[0]?.role === "ADMIN";

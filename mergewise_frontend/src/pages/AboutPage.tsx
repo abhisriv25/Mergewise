@@ -21,15 +21,8 @@ import {
 import { buttonClasses, cx } from "../components/ui";
 import { githubLoginUrl } from "../lib/api";
 import { CREATORS, SITE, type Creator, type CreatorLinks } from "../lib/site";
+import { usePageTitle } from "../lib/use-page-title";
 
-// Every number here is checkable in the repo: the six rules in
-// risk-rules.config.ts, the backend test suite, and the README's slice plan.
-const NUMBERS = [
-  { value: "6", label: "risk signals, each documented" },
-  { value: "130", label: "automated backend tests" },
-  { value: "6 of 11", label: "build stages shipped" },
-  { value: "0", label: "lines of your code stored" },
-];
 
 const PRINCIPLES = [
   {
@@ -67,6 +60,16 @@ const STAGES: { title: string; text: string; status: StageStatus }[] = [
   { title: "Notifications", text: "Slack alerts and workflow automation.", status: "planned" },
 ];
 
+// Every number here is checkable in the repo: the six rules in
+// risk-rules.config.ts, the backend test suite, and the build stages below
+// (counted from STAGES, so the two can't disagree).
+const NUMBERS = [
+  { value: "6", label: "risk signals, each documented" },
+  { value: "200+", label: "automated backend tests" },
+  { value: `${STAGES.filter((s) => s.status === "shipped").length} of ${STAGES.length}`, label: "build stages shipped" },
+  { value: "0", label: "lines of your code stored" },
+];
+
 const STACK: { group: string; items: string[] }[] = [
   { group: "Frontend", items: ["React", "TypeScript", "Tailwind CSS", "React Query", "Vite"] },
   { group: "Backend", items: ["Node.js", "Express", "Prisma", "Vitest"] },
@@ -84,6 +87,7 @@ const LINKS: { key: keyof CreatorLinks; label: string; icon: ReactNode }[] = [
 ];
 
 export function AboutPage() {
+  usePageTitle("About");
   return (
     <PublicLayout>
       <main>
@@ -119,7 +123,7 @@ function Hero() {
             actually hurt.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/login#try" className={buttonClasses("solid", "md", "h-11 px-5")}>
+            <Link to="/#try" className={buttonClasses("solid", "md", "h-11 px-5")}>
               Try it live <ArrowRightIcon size={14} />
             </Link>
             <a href={SITE.sourceUrl} target="_blank" rel="noreferrer" className={buttonClasses("outline", "md", "h-11 px-5")}>
@@ -431,7 +435,7 @@ function Cta() {
                 <GithubIcon size={17} /> Continue with GitHub
               </a>
               <Link
-                to="/login#try"
+                to="/#try"
                 className="inline-flex h-12 items-center justify-center gap-1.5 rounded-lg px-6 text-[15px] font-medium text-white ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/10"
               >
                 Try it without signing in

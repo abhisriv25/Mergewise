@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { RiskLevel, RiskSignal } from "../lib/api";
+import { SENSITIVE_PATHS_SUMMARY } from "../lib/risk-engine";
 import { DiffIcon, FlaskIcon, LayersIcon, LockIcon, PackageIcon, DatabaseIcon } from "./icons";
 import { cx } from "./ui";
 
@@ -57,7 +58,7 @@ export const SIGNAL_META: Record<string, { label: string; icon: ReactNode; hint:
   SENSITIVE_PATH: {
     label: "Sensitive code",
     icon: <LockIcon size={15} />,
-    hint: "Auth, security, secrets or config paths",
+    hint: `Touches ${SENSITIVE_PATHS_SUMMARY}`,
   },
   MIGRATION_CHANGE: {
     label: "Database migration",

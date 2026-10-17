@@ -5,6 +5,7 @@ import { AlertIcon, ArrowRightIcon, LogOutIcon, LogoMark, MailIcon } from "../co
 import { Button, Card } from "../components/ui";
 import { ApiError, createOrganization, logout } from "../lib/api";
 import { useCurrentUser } from "../lib/use-current-user";
+import { usePageTitle } from "../lib/use-page-title";
 
 const MIN_NAME = 2;
 const MAX_NAME = 60;
@@ -13,6 +14,7 @@ const MAX_NAME = 60;
  * name one and become its admin. Teammates don't come through here — they
  * join an existing organization from an invitation link. */
 export function WelcomePage() {
+  usePageTitle("Create your organization");
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -48,7 +50,7 @@ export function WelcomePage() {
   async function handleLogout() {
     await logout().catch(() => undefined);
     queryClient.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   return (

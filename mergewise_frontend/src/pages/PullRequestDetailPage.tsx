@@ -20,6 +20,7 @@ import { ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, Sta
 import { ApiError, type PrIntelligenceResponse, type RiskAssessment, type RiskSignal } from "../lib/api";
 import { formatDateTime, plural, timeAgo } from "../lib/format";
 import { usePullRequest, usePullRequestIntelligence, usePullRequestRisk } from "../lib/use-pull-requests";
+import { usePageTitle } from "../lib/use-page-title";
 
 /** Concrete reviewer actions for each rule the engine can trigger —
  * deterministic, derived from the signals, not AI output. */
@@ -37,6 +38,7 @@ export function PullRequestDetailPage() {
   const pr = usePullRequest(pullId);
   const risk = usePullRequestRisk(pullId);
   const intelligence = usePullRequestIntelligence(pullId);
+  usePageTitle(pr.data ? `#${pr.data.number} ${pr.data.title}` : "Pull request");
 
   if (pr.isLoading) {
     return (

@@ -48,7 +48,7 @@ const LANDING_SECTIONS = [
 ];
 
 function PublicHeader() {
-  const onLanding = useLocation().pathname === "/login";
+  const onLanding = useLocation().pathname === "/";
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -219,7 +219,7 @@ function useActiveSection(ids: string[]) {
 
 function Brand({ animated = false }: { animated?: boolean }) {
   return (
-    <Link to="/login" className="flex items-center gap-2.5">
+    <Link to="/" className="flex items-center gap-2.5">
       <LogoMark size={32} animated={animated} className="shrink-0" />
       <Wordmark className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white" />
     </Link>
@@ -230,13 +230,13 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; to?: string; href
   {
     title: "Product",
     links: [
-      { label: "Try it live", href: "/login#try" },
-      { label: "Risk engine", href: "/login#signals" },
-      { label: "How it works", href: "/login#how-it-works" },
-      { label: "Security", href: "/login#security" },
-      { label: "Roadmap", href: "/login#roadmap" },
-      { label: "Early access", href: "/login#early-access" },
-      { label: "FAQ", href: "/login#faq" },
+      { label: "Try it live", href: "/#try" },
+      { label: "Risk engine", href: "/#signals" },
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Security", href: "/#security" },
+      { label: "Roadmap", href: "/#roadmap" },
+      { label: "Early access", href: "/#early-access" },
+      { label: "FAQ", href: "/#faq" },
     ],
   },
   {

@@ -20,6 +20,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { Avatar, ButtonAnchor, ButtonLink, cx } from "../components/ui";
 import { ApiError, fetchInvitationPreview, githubLoginUrlForInvite, type InvitationPreview } from "../lib/api";
 import { formatDateTime, timeAgo } from "../lib/format";
+import { usePageTitle } from "../lib/use-page-title";
 
 /** The GitHub account invitees must belong to, phrased for a sentence. */
 function githubRequirement(preview: InvitationPreview): string | null {
@@ -86,6 +87,7 @@ const STEPS = [
 /** Public page an invite link opens: who's inviting you where, and a
  * "Continue with GitHub" button that signs in and joins in one round-trip. */
 export function InvitePage() {
+  usePageTitle("Invitation");
   const { token = "" } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const errorCode = searchParams.get("error");
@@ -223,7 +225,7 @@ export function InvitePage() {
                       </p>
                     </>
                   ) : (
-                    <ButtonLink to="/login" variant="outline" className="mt-6 h-11 w-full">
+                    <ButtonLink to="/" variant="outline" className="mt-6 h-11 w-full">
                       Go to Mergewise
                     </ButtonLink>
                   )}

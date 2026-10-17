@@ -19,6 +19,7 @@ import { greeting, plural } from "../lib/format";
 import { useCurrentUser } from "../lib/use-current-user";
 import { usePullRequests } from "../lib/use-pull-requests";
 import { useRepositories } from "../lib/use-repositories";
+import { usePageTitle } from "../lib/use-page-title";
 
 const RISK_RANK: Record<RiskLevel, number> = { CRITICAL: 3, HIGH: 2, MEDIUM: 1, LOW: 0 };
 
@@ -30,6 +31,7 @@ function levelForScore(score: number): RiskLevel {
 }
 
 export function DashboardPage() {
+  usePageTitle("Dashboard");
   const { data: user } = useCurrentUser();
   const repos = useRepositories();
   const prs = usePullRequests();

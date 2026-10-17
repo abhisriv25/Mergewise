@@ -9,6 +9,7 @@ import type { PullRequestListItem, RiskLevel } from "../lib/api";
 import { plural } from "../lib/format";
 import { usePullRequests } from "../lib/use-pull-requests";
 import { useRepositories } from "../lib/use-repositories";
+import { usePageTitle } from "../lib/use-page-title";
 
 type StatusFilter = "open" | "merged" | "closed" | "all";
 type SortKey = "risk" | "updated";
@@ -26,6 +27,7 @@ function statusOf(pr: PullRequestListItem): Exclude<StatusFilter, "all"> {
 }
 
 export function PullRequestsPage() {
+  usePageTitle("Pull requests");
   const [params, setParams] = useSearchParams();
   const repoId = params.get("repo") ?? "";
   const status = (params.get("status") as StatusFilter) || "open";
