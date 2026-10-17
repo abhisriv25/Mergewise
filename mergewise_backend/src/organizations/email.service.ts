@@ -124,8 +124,8 @@ export function renderInvitationEmail(input: InvitationEmailInput) {
           <h1 style="margin:22px 0 0;${font}font-size:24px;line-height:32px;font-weight:700;color:#0f172a;">Join ${e.org} on Mergewise</h1>
           <p style="margin:12px 0 0;${font}font-size:15px;line-height:24px;color:#475569;">${escapeHtml(ABOUT_MERGEWISE)}</p>
         </td></tr>
-        <tr><td style="padding:24px 32px 8px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <tr><td align="center" style="padding:24px 32px 8px;">
+          <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
             <td style="border-radius:10px;background:#0f172a;">
               <a href="${e.url}" style="display:inline-block;padding:14px 26px;${font}font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Accept invitation</a>
             </td>
