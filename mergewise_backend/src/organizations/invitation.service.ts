@@ -60,6 +60,10 @@ async function issueInvitation(organization: Organization, email: string, invite
     organizationName: organization.name,
     inviterLogin: inviter.githubLogin,
     url,
+    expiresAt: invitation.expiresAt,
+    githubAccount: organization.githubAccountLogin
+      ? { login: organization.githubAccountLogin, type: organization.githubAccountType ?? "User" }
+      : null,
   });
 
   // The link is only ever returned here, at creation: the token itself is
