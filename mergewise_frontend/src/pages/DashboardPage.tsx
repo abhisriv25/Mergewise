@@ -14,14 +14,15 @@ import {
 import { PullRequestRow, PullRequestRowSkeleton } from "../components/PullRequestRow";
 import { RISK_META, RiskDistribution } from "../components/risk";
 import { Banner, ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, cx } from "../components/ui";
-import { githubInstallUrl, type PullRequestListItem, type RiskLevel } from "../lib/api";
+import { githubInstallUrl, type RepositoryPullRequestSummary, type RiskLevel } from "../lib/api";
 import { greeting, plural } from "../lib/format";
 import { useCurrentUser } from "../lib/use-current-user";
-import { usePullRequests } from "../lib/use-pull-requests";
-import { useRepositories } from "../lib/use-repositories";
+import { usePullRequestSummary, usePullRequests } from "../lib/use-pull-requests";
+import { useConnectedRepositories } from "../lib/use-repositories";
 import { usePageTitle } from "../lib/use-page-title";
 
-const RISK_RANK: Record<RiskLevel, number> = { CRITICAL: 3, HIGH: 2, MEDIUM: 1, LOW: 0 };
+const QUEUE_SIZE = 6;
+const EMPTY_RISK_COUNTS: Record<RiskLevel, number> = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
 
 function levelForScore(score: number): RiskLevel {
   if (score >= 75) return "CRITICAL";
@@ -33,42 +34,31 @@ function levelForScore(score: number): RiskLevel {
 export function DashboardPage() {
   usePageTitle("Dashboard");
   const { data: user } = useCurrentUser();
-  const repos = useRepositories();
-  const prs = usePullRequests();
+  const repos = useConnectedRepositories();
+  const summary = usePullRequestSummary();
+  // The review queue: the riskiest open, ready-for-review PRs, ranked
+  // server-side so it's right however many PRs there are.
+  const queue = usePullRequests({ status: "open", sort: "risk", pageSize: QUEUE_SIZE });
   // Set by the API after an invitation is accepted at sign-in.
   const [searchParams] = useSearchParams();
   const justJoined = searchParams.get("joined") === "1";
 
   if (!user) return null; // ProtectedRoute handles loading and redirects
 
-  const repositories = repos.data?.repositories ?? [];
-  const pullRequests = prs.data?.pullRequests ?? [];
-  const openPrs = pullRequests.filter((pr) => pr.state === "open");
-  const scoredOpen = openPrs.filter((pr) => pr.latestRisk);
-
-  const riskCounts = scoredOpen.reduce(
-    (acc, pr) => {
-      acc[pr.latestRisk!.level] += 1;
-      return acc;
-    },
-    { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 } as Record<RiskLevel, number>,
-  );
-  const needsAttention = riskCounts.HIGH + riskCounts.CRITICAL;
-  const avgScore = scoredOpen.length
-    ? Math.round(scoredOpen.reduce((sum, pr) => sum + pr.latestRisk!.score, 0) / scoredOpen.length)
-    : null;
-
-  const topRisk = [...scoredOpen]
-    .sort(
-      (a, b) =>
-        RISK_RANK[b.latestRisk!.level] - RISK_RANK[a.latestRisk!.level] || b.latestRisk!.score - a.latestRisk!.score,
-    )
-    .slice(0, 6);
+  const repositories = repos.repositories;
+  const stats = summary.data;
+  const openCount = stats?.open ?? 0;
+  const riskCounts = stats?.openRiskCounts ?? EMPTY_RISK_COUNTS;
+  const scoredOpenCount = Object.values(riskCounts).reduce((sum, n) => sum + n, 0);
+  const needsAttention = stats?.needsAttention ?? 0;
+  const avgScore = stats?.averageOpenScore ?? null;
+  const topRisk = (queue.data?.pullRequests ?? []).filter((pr) => pr.latestRisk);
+  const repoStats = new Map((stats?.repositories ?? []).map((r) => [r.repositoryId, r]));
 
   const firstName = (user.displayName ?? user.githubLogin).split(" ")[0];
   const org = user.organizations[0];
   const isAdmin = org?.role === "ADMIN";
-  const loading = prs.isLoading;
+  const loading = summary.isLoading;
 
   return (
     <AppLayout>
@@ -80,7 +70,7 @@ export function DashboardPage() {
             ? "Loading your review queue…"
             : needsAttention > 0
               ? `${plural(needsAttention, "pull request")} ${needsAttention === 1 ? "needs" : "need"} a careful review today.`
-              : openPrs.length > 0
+              : openCount > 0
                 ? "Nothing high-risk in the queue. Nice."
                 : "Your review queue is empty."
         }
@@ -111,9 +101,13 @@ export function DashboardPage() {
       <div className="mt-8 grid animate-fade-in-up grid-cols-2 gap-3 [animation-delay:60ms] lg:grid-cols-4 lg:gap-4">
         <StatCard
           label="Open pull requests"
-          value={loading ? null : openPrs.length}
+          value={loading ? null : openCount}
           icon={<PullRequestIcon size={15} />}
-          footnote={loading ? null : `${plural(pullRequests.length, "PR")} tracked`}
+          footnote={
+            loading
+              ? null
+              : `${plural(stats?.tracked ?? 0, "PR")} tracked${stats?.draft ? ` · ${plural(stats.draft, "draft")}` : ""}`
+          }
           href="/pulls"
         />
         <StatCard
@@ -149,19 +143,19 @@ export function DashboardPage() {
             title="Review queue"
             description="Open PRs ranked by risk"
             action={
-              openPrs.length > 0 && (
+              openCount > 0 && (
                 <Link to="/pulls" className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 transition-colors hover:text-emerald-700 dark:hover:text-emerald-300">
                   View all <ArrowRightIcon size={12} />
                 </Link>
               )
             }
           />
-          {prs.isLoading ? (
+          {queue.isLoading ? (
             <PullRequestRowSkeleton count={4} />
-          ) : prs.isError ? (
-            <ErrorState description="We couldn't load pull requests. Check your connection and try again." onRetry={() => prs.refetch()} />
+          ) : queue.isError ? (
+            <ErrorState description="We couldn't load pull requests. Check your connection and try again." onRetry={() => queue.refetch()} />
           ) : topRisk.length === 0 ? (
-            <QueueEmpty hasRepos={repositories.length > 0} hasPrs={pullRequests.length > 0} />
+            <QueueEmpty hasRepos={repositories.length > 0} hasPrs={(stats?.tracked ?? 0) > 0} />
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-line">
               {topRisk.map((pr, i) => (
@@ -173,7 +167,7 @@ export function DashboardPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Risk mix" description={`Across ${plural(scoredOpen.length, "open PR")}`} />
+            <CardHeader title="Risk mix" description={`Across ${plural(scoredOpenCount, "open PR")}`} />
             <div className="p-5">
               {loading ? (
                 <div className="space-y-4">
@@ -218,7 +212,7 @@ export function DashboardPage() {
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-line">
                 {repositories.slice(0, 6).map((repo) => (
-                  <RepoSummaryRow key={repo.id} repoId={repo.id} fullName={repo.fullName} pullRequests={pullRequests} />
+                  <RepoSummaryRow key={repo.id} repoId={repo.id} fullName={repo.fullName} stats={repoStats.get(repo.id)} />
                 ))}
               </ul>
             )}
@@ -286,16 +280,13 @@ function StatCard({
 function RepoSummaryRow({
   repoId,
   fullName,
-  pullRequests,
+  stats,
 }: {
   repoId: string;
   fullName: string;
-  pullRequests: PullRequestListItem[];
+  stats?: RepositoryPullRequestSummary;
 }) {
-  const open = pullRequests.filter((pr) => pr.repository.id === repoId && pr.state === "open");
-  const worst = open
-    .filter((pr) => pr.latestRisk)
-    .sort((a, b) => b.latestRisk!.score - a.latestRisk!.score)[0]?.latestRisk;
+  const worst = stats?.worst;
   const [owner, name] = fullName.split("/");
 
   return (
@@ -309,7 +300,7 @@ function RepoSummaryRow({
             <span className="text-slate-500">{owner}/</span>
             {name}
           </p>
-          <p className="text-xs text-slate-500">{plural(open.length, "open PR")}</p>
+          <p className="text-xs text-slate-500">{plural(stats?.open ?? 0, "open PR")}</p>
         </div>
         {worst && <span className={cx("size-2 shrink-0 rounded-full", RISK_META[worst.level].dot)} title={`Highest: ${worst.level}`} />}
       </Link>

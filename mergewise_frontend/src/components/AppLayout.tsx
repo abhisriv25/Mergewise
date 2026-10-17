@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { logout } from "../lib/api";
 import { useCurrentUser } from "../lib/use-current-user";
-import { usePullRequests } from "../lib/use-pull-requests";
+import { usePullRequestSummary } from "../lib/use-pull-requests";
 import { CloseIcon, HomeIcon, LogOutIcon, MenuIcon, LogoMark, PullRequestIcon, RepoIcon, UsersIcon, Wordmark } from "./icons";
 import { GridLines } from "./PublicLayout";
 import { ThemeToggle } from "./ThemeToggle";
@@ -94,12 +94,10 @@ function Brand() {
 
 function SidebarContent() {
   const { data: user } = useCurrentUser();
-  const { data: prData } = usePullRequests();
+  const { data: summary } = usePullRequestSummary();
   const queryClient = useQueryClient();
 
-  const attentionCount = (prData?.pullRequests ?? []).filter(
-    (pr) => pr.state === "open" && (pr.latestRisk?.level === "HIGH" || pr.latestRisk?.level === "CRITICAL"),
-  ).length;
+  const attentionCount = summary?.needsAttention ?? 0;
 
   async function handleLogout() {
     await logout().catch(() => undefined);

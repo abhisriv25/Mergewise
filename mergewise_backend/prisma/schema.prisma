@@ -136,6 +136,13 @@ model Repository {
   private               Boolean  @default(false)
   connectedAt           DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  /// Set when an admin disconnects the repo in Mergewise, or when the
+  /// GitHub App loses access to it. The row is kept, not deleted, so
+  /// reconnecting brings its history back; while set, the repo's PRs are
+  /// hidden and its webhooks are ignored.
+  disconnectedAt        DateTime?
+  /// When the repo's README + docs/ were last indexed for AI review.
+  docsIndexedAt         DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   pullRequests     PullRequest[]
@@ -204,6 +211,8 @@ model PullRequest {
   // Raw GitHub state ("open" | "closed"); merged-vs-closed-unmerged is
   // distinguished by whether mergedAt is set, matching GitHub's own model.
   state        String
+  // GitHub's draft flag. Only meaningful while state is "open".
+  draft        Boolean   @default(false)
   author       String
   baseBranch   String
   headBranch   String
@@ -222,6 +231,11 @@ model PullRequest {
   additions         Int @default(0)
   deletions         Int @default(0)
   changedFilesCount Int @default(0)
+  // Copied from the newest RiskAssessment whenever one is created (see
+  // risk-assessment.repository.ts), so the PR list can filter, sort and
+  // paginate by risk in SQL instead of loading every PR to rank them.
+  latestRiskScore   Int?
+  latestRiskLevel   RiskLevel?
   // Mergewise's own bookkeeping: when *we* last wrote this row. Distinct
   // from `updatedAt` above (GitHub's timestamp) on purpose — don't conflate
   // "when GitHub says this changed" with "when we last synced it".

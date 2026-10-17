@@ -15,6 +15,7 @@ const BASE_PR: GithubPullRequest = {
   title: "Add feature",
   body: "desc",
   state: "open",
+  draft: false,
   author: "octocat",
   baseBranch: "main",
   headBranch: "feature",

@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { Link, type LinkProps } from "react-router-dom";
+import type { PullRequestStatus } from "../lib/api";
 import { AlertIcon, RefreshIcon } from "./icons";
 
 export function cx(...classes: (string | false | null | undefined)[]): string {
@@ -228,12 +229,20 @@ export function Avatar({ src, name, size = 28 }: { src?: string | null; name: st
   );
 }
 
-export function StatusPill({ state, mergedAt }: { state: string; mergedAt: string | null }) {
-  const status = mergedAt ? "merged" : state === "closed" ? "closed" : "open";
+/** Text colour for a PR status, shared by the pill and the PR row's icon. */
+export const STATUS_TEXT: Record<PullRequestStatus, string> = {
+  open: "text-emerald-600 dark:text-emerald-400",
+  draft: "text-slate-500",
+  merged: "text-violet-600 dark:text-violet-400",
+  closed: "text-rose-600 dark:text-rose-400",
+};
+
+export function StatusPill({ status }: { status: PullRequestStatus }) {
   const styles = {
     open: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-400/10 ring-emerald-600/20 dark:ring-emerald-400/20",
+    draft: "text-slate-600 dark:text-slate-300 bg-white dark:bg-transparent ring-slate-300 dark:ring-slate-400/30 border-dashed",
     merged: "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-400/10 ring-violet-600/20 dark:ring-violet-400/20",
-    closed: "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-400/10 ring-slate-300 dark:ring-slate-400/20",
+    closed: "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-400/10 ring-rose-600/20 dark:ring-rose-400/20",
   }[status];
   return (
     <span className={cx("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset", styles)}>

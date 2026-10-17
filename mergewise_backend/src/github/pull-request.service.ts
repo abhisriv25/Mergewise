@@ -7,6 +7,7 @@ export interface GithubPullRequest {
   title: string;
   body: string | null;
   state: string;
+  draft: boolean;
   author: string | null;
   baseBranch: string;
   headBranch: string;
@@ -28,6 +29,7 @@ interface GithubApiPullRequest {
   title: string;
   body: string | null;
   state: string;
+  draft?: boolean;
   user: { login: string } | null;
   base: { ref: string; sha: string };
   head: { ref: string; sha: string };
@@ -78,6 +80,7 @@ export async function fetchPullRequest(
     title: body.title,
     body: body.body ?? null,
     state: body.state,
+    draft: body.draft === true,
     author: body.user?.login ?? null,
     baseBranch: body.base.ref,
     headBranch: body.head.ref,

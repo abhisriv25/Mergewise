@@ -1,30 +1,29 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
-import { ChevronDownIcon, PullRequestIcon, RefreshIcon, SearchIcon } from "../components/icons";
+import { ArrowLeftIcon, ArrowRightIcon, ChevronDownIcon, PullRequestIcon, RefreshIcon, SearchIcon } from "../components/icons";
 import { PullRequestRow, PullRequestRowSkeleton } from "../components/PullRequestRow";
 import { RISK_LEVELS, RISK_META } from "../components/risk";
 import { Button, Card, EmptyState, ErrorState, Kbd, PageHeader, cx } from "../components/ui";
-import type { PullRequestListItem, RiskLevel } from "../lib/api";
+import type { PullRequestStatus, RiskLevel } from "../lib/api";
 import { plural } from "../lib/format";
 import { usePullRequests } from "../lib/use-pull-requests";
-import { useRepositories } from "../lib/use-repositories";
+import { useConnectedRepositories } from "../lib/use-repositories";
 import { usePageTitle } from "../lib/use-page-title";
 
-type StatusFilter = "open" | "merged" | "closed" | "all";
+type StatusFilter = PullRequestStatus | "all";
 type SortKey = "risk" | "updated";
+
+const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const STATUS_TABS: { key: StatusFilter; label: string }[] = [
   { key: "open", label: "Open" },
+  { key: "draft", label: "Draft" },
   { key: "merged", label: "Merged" },
   { key: "closed", label: "Closed" },
   { key: "all", label: "All" },
 ];
-
-function statusOf(pr: PullRequestListItem): Exclude<StatusFilter, "all"> {
-  if (pr.mergedAt) return "merged";
-  return pr.state === "closed" ? "closed" : "open";
-}
 
 export function PullRequestsPage() {
   usePageTitle("Pull requests");
@@ -34,15 +33,35 @@ export function PullRequestsPage() {
   const riskParam = params.get("risk") ?? "";
   const query = params.get("q") ?? "";
   const sort = (params.get("sort") as SortKey) || "risk";
+  const page = Math.max(1, Number(params.get("page")) || 1);
 
   const selectedLevels = useMemo<RiskLevel[]>(() => {
     if (riskParam === "attention") return ["CRITICAL", "HIGH"];
     return riskParam.split(",").filter((l): l is RiskLevel => (RISK_LEVELS as string[]).includes(l));
   }, [riskParam]);
 
-  const prs = usePullRequests();
-  const repos = useRepositories();
+  const prs = usePullRequests({
+    repositoryId: repoId || undefined,
+    status,
+    risk: selectedLevels.join(",") || undefined,
+    q: query.trim() || undefined,
+    sort,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const repos = useConnectedRepositories();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Typing updates the box at once, but the URL (and so the request) only
+  // after a pause, so each keystroke doesn't fire a search.
+  const [searchText, setSearchText] = useState(query);
+  useEffect(() => setSearchText(query), [query]);
+  useEffect(() => {
+    if (searchText === query) return;
+    const timer = setTimeout(() => update({ q: searchText || null }), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,13 +75,21 @@ export function PullRequestsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  /** Any filter change goes back to the first page; only turning the page
+   * itself keeps it. */
   function update(changes: Record<string, string | null>) {
     const next = new URLSearchParams(params);
+    if (!("page" in changes)) next.delete("page");
     for (const [key, value] of Object.entries(changes)) {
       if (value) next.set(key, value);
       else next.delete(key);
     }
     setParams(next, { replace: true });
+  }
+
+  function goToPage(target: number) {
+    update({ page: target > 1 ? String(target) : null });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleLevel(level: RiskLevel) {
@@ -72,38 +99,21 @@ export function PullRequestsPage() {
     update({ risk: RISK_LEVELS.filter((l) => set.has(l)).join(",") || null });
   }
 
-  const all = prs.data?.pullRequests ?? [];
-  const inRepo = repoId ? all.filter((pr) => pr.repository.id === repoId) : all;
+  const pullRequests = prs.data?.pullRequests ?? [];
+  const statusCounts = prs.data?.statusCounts;
+  const total = prs.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const firstShown = (page - 1) * PAGE_SIZE + 1;
 
-  const statusCounts = inRepo.reduce(
-    (acc, pr) => {
-      acc[statusOf(pr)] += 1;
-      acc.all += 1;
-      return acc;
-    },
-    { open: 0, merged: 0, closed: 0, all: 0 } as Record<StatusFilter, number>,
-  );
+  // A page past the end (say, after a filter shrank the results) goes back
+  // to the last page that has results.
+  useEffect(() => {
+    if (prs.data && !prs.isPlaceholderData && page > pageCount) goToPage(pageCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prs.data, prs.isPlaceholderData, page, pageCount]);
 
-  const needle = query.trim().toLowerCase();
-  const filtered = inRepo
-    .filter((pr) => status === "all" || statusOf(pr) === status)
-    .filter((pr) => selectedLevels.length === 0 || (pr.latestRisk && selectedLevels.includes(pr.latestRisk.level)))
-    .filter(
-      (pr) =>
-        !needle ||
-        pr.title.toLowerCase().includes(needle) ||
-        pr.author.toLowerCase().includes(needle) ||
-        pr.repository.fullName.toLowerCase().includes(needle) ||
-        `#${pr.number}`.includes(needle),
-    )
-    .sort((a, b) =>
-      sort === "risk"
-        ? (b.latestRisk?.score ?? -1) - (a.latestRisk?.score ?? -1) || b.updatedAt.localeCompare(a.updatedAt)
-        : b.updatedAt.localeCompare(a.updatedAt),
-    );
-
-  const repoName = repos.data?.repositories.find((r) => r.id === repoId)?.fullName;
-  const hasFilters = Boolean(needle || selectedLevels.length || repoId);
+  const repoName = repos.repositories.find((r) => r.id === repoId)?.fullName;
+  const hasFilters = Boolean(query.trim() || selectedLevels.length || repoId);
 
   return (
     <AppLayout>
@@ -128,8 +138,8 @@ export function PullRequestsPage() {
               <SearchIcon size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 ref={searchRef}
-                value={query}
-                onChange={(e) => update({ q: e.target.value || null })}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Search by title, author, repo or #number"
                 className="h-9 w-full rounded-lg border border-slate-300 dark:border-line-strong bg-white dark:bg-canvas/60 pl-9 pr-10 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 dark:focus:ring-emerald-400/20"
               />
@@ -145,7 +155,7 @@ export function PullRequestsPage() {
                 onChange={(v) => update({ repo: v || null })}
                 options={[
                   { value: "", label: "All repositories" },
-                  ...(repos.data?.repositories ?? []).map((r) => ({ value: r.id, label: r.fullName })),
+                  ...repos.repositories.map((r) => ({ value: r.id, label: r.fullName })),
                 ]}
               />
               <Select
@@ -175,7 +185,7 @@ export function PullRequestsPage() {
                 >
                   {tab.label}
                   <span className="tabular rounded-full bg-slate-100 dark:bg-white/[0.06] px-1.5 text-[10px] text-slate-600 dark:text-slate-400">
-                    {statusCounts[tab.key]}
+                    {statusCounts ? statusCounts[tab.key] : "–"}
                   </span>
                 </button>
               ))}
@@ -209,10 +219,18 @@ export function PullRequestsPage() {
           <PullRequestRowSkeleton count={6} />
         ) : prs.isError ? (
           <ErrorState description="We couldn't load pull requests. Check your connection and try again." onRetry={() => prs.refetch()} />
-        ) : filtered.length === 0 ? (
+        ) : pullRequests.length === 0 ? (
           <EmptyState
             icon={hasFilters ? <SearchIcon size={18} /> : <PullRequestIcon size={18} />}
-            title={hasFilters ? "No pull requests match" : status === "open" ? "No open pull requests" : `No ${status} pull requests`}
+            title={
+              hasFilters
+                ? "No pull requests match"
+                : status === "all"
+                  ? "No pull requests yet"
+                  : status === "open"
+                    ? "No open pull requests"
+                    : `No ${status} pull requests`
+            }
             description={
               hasFilters
                 ? "Try a different search, or clear the filters to see everything."
@@ -228,14 +246,35 @@ export function PullRequestsPage() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-slate-100 dark:divide-line">
-              {filtered.map((pr, i) => (
+            <ul
+              className={cx("divide-y divide-slate-100 dark:divide-line transition-opacity", prs.isPlaceholderData && "opacity-60")}
+              aria-busy={prs.isPlaceholderData}
+            >
+              {pullRequests.map((pr, i) => (
                 <PullRequestRow key={pr.id} pr={pr} index={i} showRepo={!repoId} />
               ))}
             </ul>
-            <div className="border-t border-slate-200 dark:border-line px-5 py-2.5 text-xs text-slate-500">
-              Showing {plural(filtered.length, "pull request")}
-              {filtered.length !== inRepo.length && ` of ${inRepo.length}`}
+            <div className="flex items-center justify-between gap-3 border-t border-slate-200 dark:border-line px-5 py-2.5 text-xs text-slate-500">
+              <span className="tabular">
+                {total <= PAGE_SIZE
+                  ? `Showing ${plural(total, "pull request")}`
+                  : `Showing ${firstShown}–${firstShown + pullRequests.length - 1} of ${total}`}
+              </span>
+              {pageCount > 1 && (
+                <nav className="flex items-center gap-1.5" aria-label="Pagination">
+                  <Button size="sm" variant="subtle" onClick={() => goToPage(page - 1)} disabled={page <= 1} aria-label="Previous page">
+                    <ArrowLeftIcon size={13} />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <span className="tabular px-1">
+                    {page} / {pageCount}
+                  </span>
+                  <Button size="sm" variant="subtle" onClick={() => goToPage(page + 1)} disabled={page >= pageCount} aria-label="Next page">
+                    <span className="hidden sm:inline">Next</span>
+                    <ArrowRightIcon size={13} />
+                  </Button>
+                </nav>
+              )}
             </div>
           </>
         )}
