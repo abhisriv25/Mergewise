@@ -9,12 +9,12 @@ import { RISK_ENGINE_VERSION } from "./risk-rules.config.js";
 export class PullRequestNotFoundError extends Error {}
 export class RepositoryNotFoundError extends Error {}
 
-/** The only entry point this slice adds — not triggered automatically from
- * the webhook processor, and not exposed over HTTP yet (that's a later
- * slice's job). Fetches the PR's changed files from GitHub using the
- * repository's own GitHub App installation credentials — never any user's
- * OAuth token — scores them with the pure, deterministic engine, and
- * persists a new RiskAssessment row. */
+/** Always scores the PR from scratch: fetches its changed files from GitHub
+ * using the repository's own GitHub App installation credentials — never
+ * any user's OAuth token — scores them with the pure, deterministic engine,
+ * and persists a new RiskAssessment row. Called by
+ * getOrCreateLatestRiskAssessment when the stored score is stale, and
+ * directly by the "Re-assess" button. */
 export async function assessPullRequest(pullRequestId: string) {
   const pullRequest = await prisma.pullRequest.findUnique({ where: { id: pullRequestId } });
   if (!pullRequest) {

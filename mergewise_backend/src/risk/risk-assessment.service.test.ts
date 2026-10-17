@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = {
-  pullRequest: { findUnique: vi.fn() },
+  pullRequest: { findUnique: vi.fn(), update: vi.fn() },
   repository: { findUnique: vi.fn() },
   riskAssessment: { create: vi.fn() },
+  $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
 };
 vi.mock("../prisma.js", () => ({ prisma: prismaMock }));
 
@@ -87,5 +88,17 @@ describe("assessPullRequest", () => {
     expect(prismaMock.riskAssessment.create).toHaveBeenCalledTimes(1);
     const persistedData = prismaMock.riskAssessment.create.mock.calls[0][0].data;
     expect(result).toEqual(persistedData);
+  });
+});
+
+describe("createRiskAssessment via assessPullRequest", () => {
+  it("copies the new score onto the pull request in the same transaction", async () => {
+    const result = await assessPullRequest("pr-1");
+
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.pullRequest.update).toHaveBeenCalledWith({
+      where: { id: "pr-1" },
+      data: { latestRiskScore: result.score, latestRiskLevel: result.level },
+    });
   });
 });

@@ -5,15 +5,26 @@ const prismaMock = {
   user: { upsert: vi.fn() },
   organization: { create: vi.fn() },
   membership: { create: vi.fn(), findFirst: vi.fn() },
-  pullRequest: { findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
+  pullRequest: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    count: vi.fn(),
+    groupBy: vi.fn(),
+    aggregate: vi.fn(),
+  },
   riskAssessment: { findFirst: vi.fn() },
   pRAnalysis: { findFirst: vi.fn() },
 };
 
 const assessPullRequestMock = vi.fn();
+const resyncAndReassessPullRequestMock = vi.fn();
 const getOrCreatePrIntelligenceMock = vi.fn();
 
 vi.mock("../prisma.js", () => ({ prisma: prismaMock }));
+vi.mock("./pull-request-resync.service.js", () => ({
+  resyncAndReassessPullRequest: resyncAndReassessPullRequestMock,
+}));
 vi.mock("../rag/pr-intelligence.service.js", () => ({ getOrCreatePrIntelligence: getOrCreatePrIntelligenceMock }));
 vi.mock("../risk/risk-assessment.service.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../risk/risk-assessment.service.js")>();
@@ -34,6 +45,7 @@ vi.mock("../risk/risk-assessment.service.js", async (importOriginal) => {
 const { app } = await import("../app.js");
 const { GithubAppError } = await import("../github/github-app-auth.service.js");
 const { LlmNotConfiguredError, LlmTimeoutError } = await import("../rag/llm-client.js");
+const { GithubApiError } = await import("../github/pull-request.service.js");
 
 const REPO = { id: "repo-1", owner: "octo", name: "app", fullName: "octo/app", organizationId: "org-1" };
 const PR = {
@@ -43,6 +55,7 @@ const PR = {
   title: "Add JWT login",
   body: null,
   state: "open",
+  draft: false,
   author: "octocat",
   baseBranch: "main",
   headBranch: "feature",
@@ -56,6 +69,8 @@ const PR = {
   additions: 40,
   deletions: 5,
   changedFilesCount: 4,
+  latestRiskScore: 60,
+  latestRiskLevel: "HIGH",
   repository: REPO,
 };
 
@@ -116,42 +131,147 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const ORG_SCOPE = { repository: { organizationId: "org-1", disconnectedAt: null } };
+
 describe("GET /pull-requests", () => {
+  beforeEach(() => {
+    prismaMock.pullRequest.findMany.mockResolvedValue([]);
+    prismaMock.pullRequest.count.mockResolvedValue(0);
+  });
+
   it("requires auth", async () => {
     const res = await request(app).get("/pull-requests");
     expect(res.status).toBe(401);
   });
 
-  it("lists only the caller's organization's PRs, with the latest risk", async () => {
+  it("lists one page of the caller's organization's PRs, with status and latest risk", async () => {
     prismaMock.pullRequest.findMany.mockResolvedValueOnce([
-      { ...PR, riskAssessments: [assessment()] },
-      { ...PR, id: "pr-2", number: 8, riskAssessments: [] },
+      PR,
+      { ...PR, id: "pr-2", number: 8, draft: true, latestRiskScore: null, latestRiskLevel: null },
     ]);
+    prismaMock.pullRequest.count
+      .mockResolvedValueOnce(3) // open
+      .mockResolvedValueOnce(1) // draft
+      .mockResolvedValueOnce(4) // merged
+      .mockResolvedValueOnce(2); // closed
     const agent = await loginAgent();
 
     const res = await agent.get("/pull-requests?repositoryId=repo-1");
 
     expect(res.status).toBe(200);
     expect(prismaMock.pullRequest.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { repository: { organizationId: "org-1" }, repositoryId: "repo-1" } }),
+      expect.objectContaining({ where: { AND: [ORG_SCOPE, { repositoryId: "repo-1" }] }, skip: 0, take: 25 }),
     );
-    expect(res.body.pullRequests).toHaveLength(2);
+    expect(res.body).toMatchObject({
+      page: 1,
+      pageSize: 25,
+      total: 10,
+      statusCounts: { open: 3, draft: 1, merged: 4, closed: 2, all: 10 },
+    });
     expect(res.body.pullRequests[0]).toMatchObject({
       id: "pr-1",
+      status: "open",
       repository: { fullName: "octo/app" },
       latestRisk: { score: 60, level: "HIGH" },
     });
-    expect(res.body.pullRequests[1].latestRisk).toBeNull();
+    expect(res.body.pullRequests[1]).toMatchObject({ status: "draft", latestRisk: null });
   });
 
-  it("returns an empty list when the user has no organization", async () => {
+  it("filters by status and risk, searches, sorts by risk and pages in SQL", async () => {
+    prismaMock.pullRequest.count.mockResolvedValue(7);
+    const agent = await loginAgent();
+
+    const res = await agent.get("/pull-requests?status=merged&risk=attention&q=%2342&sort=risk&page=3&pageSize=10");
+
+    expect(res.body).toMatchObject({ page: 3, pageSize: 10, total: 7 });
+    const query = prismaMock.pullRequest.findMany.mock.calls[0][0];
+    expect(query.skip).toBe(20);
+    expect(query.take).toBe(10);
+    expect(query.orderBy[0]).toEqual({ latestRiskScore: { sort: "desc", nulls: "last" } });
+    expect(query.where.AND).toEqual([
+      ORG_SCOPE,
+      { latestRiskLevel: { in: ["HIGH", "CRITICAL"] } },
+      { OR: expect.arrayContaining([{ number: 42 }, { title: { contains: "#42", mode: "insensitive" } }]) },
+      { mergedAt: { not: null } },
+    ]);
+  });
+
+  it("rejects an out-of-range page size", async () => {
+    const agent = await loginAgent();
+
+    expect((await agent.get("/pull-requests?pageSize=1000")).status).toBe(400);
+  });
+
+  it("returns an empty page when the user has no organization", async () => {
     const agent = await loginAgent();
     prismaMock.membership.findFirst.mockResolvedValueOnce(null);
 
     const res = await agent.get("/pull-requests");
 
-    expect(res.body).toEqual({ pullRequests: [] });
+    expect(res.body).toMatchObject({ pullRequests: [], total: 0 });
     expect(prismaMock.pullRequest.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /pull-requests/summary", () => {
+  it("rolls up open, ready-for-review PRs per repository in SQL", async () => {
+    prismaMock.pullRequest.count.mockResolvedValueOnce(2); // drafts
+    prismaMock.pullRequest.groupBy
+      .mockResolvedValueOnce([
+        { repositoryId: "repo-1", _count: { _all: 9 } },
+        { repositoryId: "repo-2", _count: { _all: 1 } },
+      ])
+      .mockResolvedValueOnce([
+        { repositoryId: "repo-1", latestRiskLevel: "CRITICAL", _count: { _all: 1 }, _max: { latestRiskScore: 80 } },
+        { repositoryId: "repo-1", latestRiskLevel: "LOW", _count: { _all: 3 }, _max: { latestRiskScore: 10 } },
+        { repositoryId: "repo-1", latestRiskLevel: null, _count: { _all: 1 }, _max: { latestRiskScore: null } },
+      ]);
+    prismaMock.pullRequest.aggregate.mockResolvedValueOnce({ _avg: { latestRiskScore: 27.5 } });
+    const agent = await loginAgent();
+
+    const res = await agent.get("/pull-requests/summary");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      tracked: 10,
+      open: 5,
+      draft: 2,
+      needsAttention: 1,
+      averageOpenScore: 28,
+      openRiskCounts: { LOW: 3, MEDIUM: 0, HIGH: 0, CRITICAL: 1 },
+      repositories: [
+        { repositoryId: "repo-1", tracked: 9, open: 5, needsAttention: 1, worst: { score: 80, level: "CRITICAL" } },
+        { repositoryId: "repo-2", tracked: 1, open: 0, needsAttention: 0, worst: null },
+      ],
+    });
+  });
+});
+
+describe("POST /pull-requests/:id/risk/reassess", () => {
+  it("refetches and re-scores the PR", async () => {
+    resyncAndReassessPullRequestMock.mockResolvedValueOnce(assessment({ id: "risk-9", score: 30, level: "MEDIUM" }));
+    const agent = await loginAgent();
+
+    const res = await agent.post("/pull-requests/pr-1/risk/reassess");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: "risk-9", score: 30, level: "MEDIUM" });
+    expect(resyncAndReassessPullRequestMock).toHaveBeenCalledWith("pr-1");
+  });
+
+  it("404s for a PR outside the caller's organization", async () => {
+    prismaMock.pullRequest.findFirst.mockResolvedValueOnce(null);
+    const agent = await loginAgent();
+
+    expect((await agent.post("/pull-requests/other/risk/reassess")).status).toBe(404);
+    expect(resyncAndReassessPullRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 when GitHub can't be reached", async () => {
+    resyncAndReassessPullRequestMock.mockRejectedValueOnce(new GithubApiError("status 502"));
+    const agent = await loginAgent();
+
+    expect((await agent.post("/pull-requests/pr-1/risk/reassess")).status).toBe(502);
   });
 });
 
@@ -164,7 +284,9 @@ describe("GET /pull-requests/:id", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: "pr-1", number: 7, headSha: "bbb", repository: { id: "repo-1" } });
     expect(prismaMock.pullRequest.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "pr-1", repository: { organizationId: "org-1" } } }),
+      expect.objectContaining({
+        where: { id: "pr-1", repository: { organizationId: "org-1", disconnectedAt: null } },
+      }),
     );
   });
 

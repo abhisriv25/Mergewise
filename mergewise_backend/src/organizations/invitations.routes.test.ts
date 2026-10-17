@@ -27,6 +27,8 @@ vi.mock("../middleware/rate-limit.js", () => {
     authFlowRateLimiter: pass,
     invitationSendRateLimiter: pass,
     invitationLookupRateLimiter: pass,
+    reassessRateLimiter: pass,
+    repositoryActionRateLimiter: pass,
   };
 });
 

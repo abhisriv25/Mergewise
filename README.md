@@ -28,7 +28,9 @@ Open app → "Sign in with GitHub" → OAuth → session → dashboard
                                               /pulls/:pullId — risk breakdown AND AI context
                                                    (both computed + persisted on first view)
 
-GitHub (PR opened/reopened/synchronize/closed on a connected repo)
+GitHub (PR opened/reopened/synchronize/closed/edited/ready_for_review/converted_to_draft,
+        a push changing README.md or docs/ on the default branch, or repos added to /
+        removed from the App installation)
    │  webhook delivery
    ▼
 POST /webhooks/github → verify signature → dedupe by delivery id → store WebhookEvent (RECEIVED)
@@ -40,14 +42,16 @@ POST /webhooks/github → verify signature → dedupe by delivery id → store W
                                                                           │
                                                                           ▼
                                               upsert PullRequest  +  WebhookEvent → PROCESSED
+                                              → re-score it if it changed since its last score
 
-ingestRepositoryDocs(repositoryId)   ← callable service, not yet wired to any trigger
+indexRepositoryDocs(repositoryId)   ← on repo connect/reconnect, and on a docs push
+  = ingestRepositoryDocs(repositoryId)
         ↓
 list README.md + docs/**/*.md → fetch each → hash → unchanged? skip : chunk on headings
         ↓
 KnowledgeSource → Document (hashed, titled) → DocumentChunk[] (ordered)
         ↓
-embedPendingChunks()   ← callable service, not yet wired to any trigger
+embedAllPendingChunks()   ← right after ingestion, when EMBEDDING_API_KEY is set
         ↓
 batch-embed un-embedded/stale-model chunks → store vector in DocumentChunk.embedding (pgvector)
 
@@ -497,8 +501,12 @@ message the first time (it's calling GitHub's API server-side to fetch the chang
 files) and then the full score breakdown; revisiting the same PR is instant since
 the assessment is now persisted.
 
-Slice 7's document ingestion isn't wired to anything yet (see "What Slice 7 adds"), so
-to actually ingest a repo's docs, call it directly — e.g. from a Node REPL in `mergewise_backend`:
+Connecting a repository indexes its docs automatically (in the background, a few
+seconds after the redirect), and a push that changes `README.md` or `docs/` on the
+default branch re-indexes them — the push needs the GitHub App subscribed to the
+**Push** event (see `.env.example`). To index by hand, run
+`npm run ingest --workspace=mergewise_backend [-- <repositoryId>]`, or call the
+service directly — e.g. from a Node REPL in `mergewise_backend`:
 ```bash
 cd mergewise_backend
 npx tsx
@@ -511,8 +519,8 @@ Then inspect the result with `npx prisma studio` — look at `KnowledgeSource`, 
 (check `contentHash`/`title`), and `DocumentChunk` (check `chunkIndex` ordering and the
 `metadata.heading` field).
 
-Slice 8's embedding pipeline and retrieval are the same "callable, not wired up" pattern.
-Once you've ingested some docs (above), embed them and try a query:
+Indexing embeds the new chunks too when `EMBEDDING_API_KEY` is set. To embed by hand
+after a REPL ingest, and try a query:
 ```bash
 cd mergewise_backend
 npx tsx
@@ -577,6 +585,40 @@ reused the persisted row instead of calling the LLM again.
 - **GitHub App permission.** Checking GitHub organization membership needs the
   App's **Organization → Members: Read** permission, accepted once by an owner
   of each GitHub organization it's installed on.
+
+## Repositories and pull requests
+
+- **Adding repositories.** "Add repositories" goes through GitHub's own install
+  screen. GitHub tells Mergewise what changed with an
+  `installation_repositories` webhook, and redirects back to
+  `/github/setup?setup_action=update` when the App has "Redirect on update"
+  checked; either way the repo list is re-synced. "Sync with GitHub" on
+  `/repositories` (admins) re-reads the list by hand, in case a webhook was missed.
+- **Disconnecting.** Admins can disconnect a repository on `/repositories`.
+  Nothing is deleted: `Repository.disconnectedAt` is set, its PRs are hidden from
+  every list and count, its webhooks are ignored, and its docs drop out of AI
+  retrieval. "Reconnect" checks the App can still see the repo and re-indexes its
+  docs. A repo removed from the App on GitHub, or every repo of an uninstalled App,
+  is disconnected the same way; re-adding it on GitHub reconnects it.
+- **Docs indexing.** `README.md` + `docs/**/*.md` are indexed when a repo is
+  connected or reconnected, and again on a push that changes them on the default
+  branch. Unchanged files are skipped by content hash. Each repo card shows when
+  its docs were last indexed.
+- **Re-scoring.** Every PR webhook refetches the PR and re-scores it when it
+  changed since its last score (new commits move GitHub's `updated_at`). The
+  **Re-assess** button on a PR refetches it and always scores it again — for a
+  missed webhook, or to check a score by hand. The AI review follows the newest
+  score, so it's regenerated for the new assessment.
+- **Statuses.** GitHub's `state` plus its `draft` flag and `mergedAt` give four
+  statuses: open (ready for review), draft, merged and closed. "Open" counts on the
+  dashboard and in the review queue leave drafts out.
+- **Pagination.** `GET /pull-requests` returns one page (`page`, `pageSize` up to
+  100, default 25) filtered by `status`, `risk`, `repositoryId` and `q`, sorted
+  by `risk` or `updated`, all in SQL, with `total` and per-status counts. Risk
+  filtering and sorting read `PullRequest.latestRiskScore`/`latestRiskLevel`,
+  copied from each new `RiskAssessment` in the same transaction.
+  `GET /pull-requests/summary` returns the dashboard's and repository cards'
+  numbers, aggregated in SQL.
 
 ## Deploying
 
@@ -884,10 +926,11 @@ packages/
   currently just "their first membership" — correct today because every user
   has exactly one, Slice-1-bootstrapped org, but it's a placeholder for real
   org selection once multi-org membership is a real scenario.
-- No UI affordance yet to *disconnect* a repository or re-run the install flow
-  to add more repos to an existing installation — GitHub's install page
-  supports "Configure" for that today; a Mergewise-side control is a small
-  follow-up, not scoped into this slice.
+- Reconnecting a repository doesn't backfill PR activity from while it was
+  disconnected (those webhooks were ignored); a PR is brought up to date by its
+  next webhook or its Re-assess button.
+- `PullRequest.draft` is filled in by each PR's next sync, so PRs synced before
+  draft tracking existed show as open until their next webhook or Re-assess.
 - `GET /github/setup` doesn't yet distinguish `setup_action=install` from
   `setup_action=request` (the case where an org owner must approve the
   install before it's usable) — both are treated the same, and a `request`
@@ -922,14 +965,12 @@ packages/
   failing (e.g. a sustained GitHub outage) will be retried by the poller forever, every
   3 seconds, rather than backing off or eventually giving up loudly. Fine at this scale;
   worth revisiting before this runs against real, unpredictable third-party uptime.
-- `PullRequest.state` stores GitHub's raw `"open"`/`"closed"` string as-is rather than a
-  richer enum (e.g. distinguishing "closed" from "merged" as separate states) — merged
-  status is derivable from `mergedAt` being non-null, which was enough for Slice 4's
-  scope, but a future risk-engine or UI consumer may prefer a proper enum.
-- `assessPullRequest` has exactly one caller now: `GET /pull-requests/:id/risk` on
-  first view of a PR (Slice 6). Still no automatic run after PR sync and no scheduled
-  re-assessment — a human looking at the PR detail page is what triggers it, which was
-  the deliberate design left open in Slice 5.
+- `PullRequest.state` stores GitHub's raw `"open"`/`"closed"` string as-is; the four
+  statuses the UI shows are derived from it, `draft` and `mergedAt`
+  (`pull-requests/pull-request-status.ts`) rather than stored as an enum.
+- No scheduled re-assessment: a PR is re-scored when a webhook says it changed, or when
+  someone clicks Re-assess — never on a timer (e.g. after the engine version changes,
+  a PR is re-scored on its next change or view).
 - The six rules are heuristic and intentionally simple: `SENSITIVE_PATH` and
   `DEPENDENCY_CHANGE` match on exact path segments/filenames from a fixed list — a
   legitimate sensitive file with an unlisted name, or a dependency file from an
@@ -949,20 +990,12 @@ packages/
   reasoning). Not an issue in practice yet since Slice 6 only calls it when no assessment
   exists at all, but a future "re-assess on demand" UI affordance would need to think
   about this.
-- No pagination on `GET /pull-requests` — it returns every PR in the org in one response.
-  Fine at demo scale; would need `?page=`/`?limit=` before this saw a repo with thousands
-  of historical PRs.
-- No UI affordance to manually re-trigger a risk assessment (e.g. after pushing new
-  commits to a PR that already has a stale assessment) — the detail page always shows the
-  latest stored assessment, which won't reflect a `synchronize` that happened after it was
-  computed. A "re-assess" button is a natural, small follow-up, not implemented because
-  nothing in Slice 6's scope asked for automatic re-assessment on every sync.
-- `ingestRepositoryDocs` is triggered manually (a Node REPL call, per "Running it
-  locally") — no automatic run on repo connection, no HTTP route, no scheduled
-  re-ingestion. It's a tested, callable service, same shape as `assessPullRequest`
-  (Slice 5) and `embedPendingChunks`/`retrieveRelevantContext` (Slice 8) — nothing in
-  this codebase yet decides *when* any of these three should run automatically; that's
-  a product decision for whichever later slice actually needs it on a schedule.
+- Pagination is offset-based (`skip`/`take`), so a PR that moves while someone pages
+  (re-scored, or updated) can shift between pages; fine for a review queue, and simpler
+  to link to than cursors.
+- Docs indexing after a connect or reconnect runs in the background inside the API
+  process. If the process restarts mid-run, that repo's docs wait for the next docs
+  push, reconnect, or `npm run ingest`.
 - The Git Trees API call in `listMarkdownFilePaths` doesn't handle GitHub's `truncated:
   true` response for very large repos — an enormous monorepo could have some `docs/`
   files silently missed. Documented in `github/docs.service.ts`; not handled because nothing

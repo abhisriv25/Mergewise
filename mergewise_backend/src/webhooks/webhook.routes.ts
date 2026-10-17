@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { env } from "../env.js";
+import { isDocPath } from "../github/docs.service.js";
 import { webhookRateLimiter } from "../middleware/rate-limit.js";
 import { recordWebhookEvent } from "./webhook-event.repository.js";
 import { verifyWebhookSignature } from "./webhook-signature.service.js";
@@ -12,12 +13,55 @@ export const webhookRouter = Router();
 // call can never turn into a webhook timeout that GitHub interprets as
 // failure and retries. A separate processor (a later slice) consumes
 // RECEIVED rows.
-const SUPPORTED_PULL_REQUEST_ACTIONS = new Set(["opened", "reopened", "synchronize", "closed"]);
+const SUPPORTED_PULL_REQUEST_ACTIONS = new Set([
+  "opened",
+  "reopened",
+  "synchronize",
+  "closed",
+  "edited",
+  "ready_for_review",
+  "converted_to_draft",
+]);
+const SUPPORTED_INSTALLATION_REPOSITORIES_ACTIONS = new Set(["added", "removed"]);
+const SUPPORTED_INSTALLATION_ACTIONS = new Set(["deleted", "suspend"]);
+// GitHub lists at most 20 commits in a push payload; a longer push may have
+// touched docs in commits it left out.
+const PUSH_PAYLOAD_COMMIT_LIMIT = 20;
 
 interface GithubWebhookPayload {
   action?: string;
-  repository?: { id?: number };
+  ref?: string;
+  commits?: { added?: string[]; modified?: string[]; removed?: string[] }[];
+  repository?: { id?: number; default_branch?: string };
   installation?: { id?: number };
+}
+
+/** Only a push to the default branch that changes README.md or docs/ is
+ * worth re-indexing for — everything else is stored as IGNORED. */
+function isDocsPush(payload: GithubWebhookPayload): boolean {
+  const defaultBranch = payload.repository?.default_branch;
+  if (!defaultBranch || payload.ref !== `refs/heads/${defaultBranch}`) return false;
+
+  const commits = payload.commits ?? [];
+  if (commits.length >= PUSH_PAYLOAD_COMMIT_LIMIT) return true;
+  return commits.some((commit) =>
+    [...(commit.added ?? []), ...(commit.modified ?? []), ...(commit.removed ?? [])].some(isDocPath),
+  );
+}
+
+function shouldProcess(eventType: string, action: string | undefined, payload: GithubWebhookPayload): boolean {
+  switch (eventType) {
+    case "pull_request":
+      return action !== undefined && SUPPORTED_PULL_REQUEST_ACTIONS.has(action);
+    case "push":
+      return isDocsPush(payload);
+    case "installation_repositories":
+      return action !== undefined && SUPPORTED_INSTALLATION_REPOSITORIES_ACTIONS.has(action);
+    case "installation":
+      return action !== undefined && SUPPORTED_INSTALLATION_ACTIONS.has(action);
+    default:
+      return false;
+  }
 }
 
 webhookRouter.post("/webhooks/github", webhookRateLimiter, async (req, res) => {
@@ -49,8 +93,6 @@ webhookRouter.post("/webhooks/github", webhookRateLimiter, async (req, res) => {
   }
 
   const action = typeof payload.action === "string" ? payload.action : undefined;
-  const isSupportedPullRequestEvent =
-    eventType === "pull_request" && action !== undefined && SUPPORTED_PULL_REQUEST_ACTIONS.has(action);
 
   try {
     const result = await recordWebhookEvent({
@@ -61,7 +103,7 @@ webhookRouter.post("/webhooks/github", webhookRateLimiter, async (req, res) => {
       githubInstallationId:
         payload.installation?.id != null ? String(payload.installation.id) : undefined,
       payload,
-      status: isSupportedPullRequestEvent ? "RECEIVED" : "IGNORED",
+      status: shouldProcess(eventType, action, payload) ? "RECEIVED" : "IGNORED",
     });
 
     if (result === "duplicate") {

@@ -11,15 +11,21 @@ import {
   FileIcon,
   GithubIcon,
   PullRequestIcon,
+  RefreshIcon,
   RepoIcon,
   ShieldCheckIcon,
   SparkleIcon,
 } from "../components/icons";
 import { RISK_META, RiskBadge, ScoreComposition, ScoreRing, signalMeta } from "../components/risk";
-import { ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, StatusPill, cx } from "../components/ui";
+import { Button, ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, StatusPill, cx } from "../components/ui";
 import { ApiError, type PrIntelligenceResponse, type RiskAssessment, type RiskSignal } from "../lib/api";
 import { formatDateTime, plural, timeAgo } from "../lib/format";
-import { usePullRequest, usePullRequestIntelligence, usePullRequestRisk } from "../lib/use-pull-requests";
+import {
+  usePullRequest,
+  usePullRequestIntelligence,
+  usePullRequestRisk,
+  useReassessPullRequest,
+} from "../lib/use-pull-requests";
 
 /** Concrete reviewer actions for each rule the engine can trigger —
  * deterministic, derived from the signals, not AI output. */
@@ -37,6 +43,7 @@ export function PullRequestDetailPage() {
   const pr = usePullRequest(pullId);
   const risk = usePullRequestRisk(pullId);
   const intelligence = usePullRequestIntelligence(pullId);
+  const reassess = useReassessPullRequest(pullId);
 
   if (pr.isLoading) {
     return (
@@ -96,7 +103,7 @@ export function PullRequestDetailPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
-          <StatusPill state={data.state} mergedAt={data.mergedAt} />
+          <StatusPill status={data.status} />
           <span>
             <span className="font-medium text-slate-800 dark:text-slate-200">{data.author}</span> wants to merge
           </span>
@@ -115,7 +122,15 @@ export function PullRequestDetailPage() {
 
       <div className="mt-6 grid animate-fade-in-up grid-cols-1 gap-6 [animation-delay:80ms] lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0 space-y-6">
-          <RiskSection risk={risk.data} isLoading={risk.isLoading} isError={risk.isError} onRetry={() => risk.refetch()} />
+          <RiskSection
+            risk={risk.data}
+            isLoading={risk.isLoading}
+            isError={risk.isError}
+            onRetry={() => risk.refetch()}
+            onReassess={() => reassess.mutate()}
+            isReassessing={reassess.isPending}
+            reassessError={reassess.error}
+          />
           <AiSection
             data={intelligence.data}
             isLoading={intelligence.isLoading}
@@ -178,15 +193,21 @@ function RiskSection({
   isLoading,
   isError,
   onRetry,
+  onReassess,
+  isReassessing,
+  reassessError,
 }: {
   risk?: RiskAssessment;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  onReassess: () => void;
+  isReassessing: boolean;
+  reassessError: unknown;
 }) {
   const [showPassed, setShowPassed] = useState(false);
 
-  if (isLoading) {
+  if (isLoading || isReassessing) {
     return (
       <Card>
         <CardHeader title="Risk assessment" icon={<ShieldCheckIcon size={15} />} />
@@ -199,7 +220,9 @@ function RiskSection({
           </div>
         </div>
         <p className="border-t border-slate-200 dark:border-line px-5 py-3 text-xs text-slate-500">
-          Fetching changed files from GitHub and scoring them…
+          {isReassessing
+            ? "Fetching the latest version from GitHub and scoring it again…"
+            : "Fetching changed files from GitHub and scoring them…"}
         </p>
       </Card>
     );
@@ -223,8 +246,28 @@ function RiskSection({
       <CardHeader
         title="Risk assessment"
         icon={<ShieldCheckIcon size={15} />}
-        action={<RiskBadge level={risk.level} score={risk.score} />}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="subtle"
+              onClick={onReassess}
+              title="Fetch the latest commits from GitHub and score this pull request again"
+            >
+              <RefreshIcon size={13} />
+              Re-assess
+            </Button>
+            <RiskBadge level={risk.level} score={risk.score} />
+          </div>
+        }
       />
+      {reassessError != null && (
+        <p role="alert" className="border-b border-slate-200 dark:border-line bg-rose-50 dark:bg-rose-500/[0.08] px-5 py-2.5 text-xs text-rose-700 dark:text-rose-200">
+          {reassessError instanceof ApiError && reassessError.status === 429
+            ? "Too many re-assessments in a row. Wait a minute and try again."
+            : "Couldn't re-assess this pull request. The score below is the last one we have."}
+        </p>
+      )}
 
       <div className="relative flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-center">
         <ScoreRing score={risk.score} level={risk.level} />
